@@ -1,0 +1,597 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user has admin role
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'beam_admin';
+    }
+    
+    // Helper function to check if user has partner admin role
+    function isPartnerAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'partner_admin';
+    }
+    
+    // Helper function to check if user is a musician
+    // This checks both custom claims and allows authenticated users
+    // (since role might be in user document, not just custom claims)
+    function isMusician() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'musician' || 
+        request.auth.token.role == null // Allow authenticated users without role claim
+      );
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Temporary bypass for viewer admin testing without sign-in.
+    // Set to false once auth-based admin testing is restored.
+    function viewerAdminBypassEnabled() {
+      return true;
+    }
+    
+    // Organizations - Only BEAM admins can read/write
+    match /organizations/{orgId} {
+      allow read, write: if isAdmin();
+      
+      // Allow partner admins to read their own organization
+      allow read: if isPartnerAdmin() && 
+        request.auth.token.organizationId == orgId;
+    }
+    
+    // Projects - Admins and organization admins can access
+    match /projects/{projectId} {
+      allow read, write: if isAdmin();
+      
+      // Allow partner admins to read/write projects for their organization
+      allow read, write: if isPartnerAdmin() && 
+        resource.data.organizationId == request.auth.token.organizationId;
+
+      // Public read for published Chamber Series project pages.
+      allow read: if (
+        resource.data.series == 'chamber' &&
+        resource.data.discipline == 'orchestra' &&
+        resource.data.location == 'milwaukee' &&
+        (resource.data.status == 'published' || resource.data.published == true)
+      );
+
+      // Versioned media under projects/{projectId}/versions/{versionId}
+      match /versions/{versionId} {
+        allow read, write: if isAdmin();
+        allow read, write: if isPartnerAdmin();
+        allow read: if (
+          get(/databases/$(database)/documents/projects/$(projectId)).data.series == 'chamber' &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.discipline == 'orchestra' &&
+          get(/databases/$(database)/documents/projects/$(projectId)).data.location == 'milwaukee' &&
+          (
+            get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'published' ||
+            get(/databases/$(database)/documents/projects/$(projectId)).data.published == true
+          )
+        );
+      }
+    }
+    
+    // Musicians - Admins and the musician themselves
+    match /musicians/{musicianId} {
+      allow read, write: if isAdmin();
+      
+      // Allow musicians to read/update their own profile (document ID is their uid)
+      allow read, update: if isAuthenticated() && musicianId == request.auth.uid;
+      
+      // Allow musicians to create their own profile
+      allow create: if isAuthenticated() && musicianId == request.auth.uid;
+      
+      // Allow partner admins to read musicians in their projects
+      allow read: if isPartnerAdmin();
+    }
+    
+    // Project Musicians - Public read for project pages, write requires admin
+    match /projectMusicians/{pmId} {
+      // Allow public read access (for roster pages)
+      allow read: if true;
+      
+      // Admins can write
+      allow write: if isAdmin();
+      
+      // Allow partner admins to write project musicians for their projects
+      allow write: if isPartnerAdmin() && 
+        resource.data.projectId in get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.organizationId == request.auth.token.organizationId;
+      
+      // Allow musicians to update their own project musician entry
+      allow update: if isAuthenticated() && resource.data.musicianId == request.auth.uid;
+    }
+    
+    // Pulse Entries - Admins only
+    match /pulseEntries/{entryId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Beam Coin Transactions - Admins and musicians
+    match /beamCoinTransactions/{transactionId} {
+      allow read, write: if isAdmin();
+      
+      // Allow musicians to read their own transactions
+      allow read: if isMusician() && 
+        resource.data.musicianId == request.auth.uid;
+    }
+    
+    // Auditions - Admins and organization admins
+    match /auditions/{auditionId} {
+      allow read, write: if isAdmin();
+      
+      // Allow partner admins to read/write auditions for their projects
+      allow read, write: if isPartnerAdmin() && 
+        resource.data.projectId in get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.organizationId == request.auth.token.organizationId;
+      
+      // Allow musicians to read their own auditions
+      allow read: if isMusician() && 
+        resource.data.musicianId == request.auth.uid;
+    }
+    
+    // Communications - Admins and organization admins
+    match /communications/{commId} {
+      allow read, write: if isAdmin();
+      
+      // Allow partner admins to read/write communications for their projects
+      allow read, write: if isPartnerAdmin() && 
+        resource.data.projectId in get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.organizationId == request.auth.token.organizationId;
+    }
+    
+    // Rehearsals - Admins and organization admins
+    match /rehearsals/{rehearsalId} {
+      allow read, write: if isAdmin();
+      
+      // Allow partner admins to read/write rehearsals for their projects
+      allow read, write: if isPartnerAdmin() && 
+        resource.data.projectId in get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.organizationId == request.auth.token.organizationId;
+      
+      // Allow musicians to read rehearsals for projects they're in
+      allow read: if isMusician() && 
+        exists(/databases/$(database)/documents/projectMusicians/$(request.auth.uid + '_' + resource.data.projectId));
+    }
+    
+    // Users collection (for custom user data)
+    match /users/{userId} {
+      allow read, write: if isAdmin();
+      
+      // Allow users to read/update/create their own data
+      allow read, update, create: if isOwner(userId);
+    }
+
+    // Page guides (helper overlay configuration)
+    match /pageGuides/{pageId} {
+      // Public read so onboarding helpers can render for all visitors
+      allow read: if true;
+
+      // Admin-managed write access for editing/adding/removing steps
+      allow write: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Publishing applications
+    match /publishingApplications/{applicationId} {
+      // Admins can read/write all applications
+      allow read, write: if isAdmin();
+
+      // Users can create their own application documents
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Users can read their own application documents
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Documents collection (for user documents like W9, contracts, etc.)
+    match /documents/{documentId} {
+      allow read, write: if isAdmin();
+      
+      // Allow users to read/update/create their own documents
+      allow read, update, create: if isAuthenticated() && documentId == request.auth.uid;
+    }
+    
+    // Verifications collection (for user verification status)
+    match /verifications/{verificationId} {
+      allow read, write: if isAdmin();
+      
+      // Allow users to read/create their own verification records
+      allow read, create: if isAuthenticated() && verificationId == request.auth.uid;
+      
+      // Allow users to update their own verification records
+      allow update: if isAuthenticated() && verificationId == request.auth.uid;
+    }
+    
+    // Donations collection (public read, admin write)
+    match /donations/{donationId} {
+      allow read: if true; // Allow public read access for donation listings
+      allow write: if isAdmin(); // Only admins can write donations (usually via API/webhook)
+    }
+    
+    // Prospects collection (for musician invitations)
+    match /prospects/{prospectId} {
+      allow read, write: if isAdmin();
+      
+      // Allow public read access via token (handled through API)
+      // This is mainly for API access with proper token validation
+      allow read: if false; // Public reads handled through API endpoint
+    }
+    
+    // Project Media - Media library for projects
+    match /projectMedia/{mediaId} {
+      // Admins can read/write all media
+      allow read, write: if isAdmin();
+      
+      // Partner admins can read/write media for their projects
+      allow read, write: if isPartnerAdmin();
+      
+      // Board members can read all media (read-only)
+      allow read: if isAuthenticated() && request.auth.token.role == 'board';
+      
+      // Public read access - filtered by access level in application logic
+      // Users can read if media has 'public' access or if they match access level
+      allow read: if true; // Application filters by access level
+      
+      // Only admins and partner admins can write
+      allow write: if isAdmin() || isPartnerAdmin();
+    }
+    
+    // Attendance - Check-in records
+    match /attendance/{attendanceId} {
+      // Admins can read/write all attendance
+      allow read, write: if isAdmin();
+      
+      // Partner admins can read/write attendance for their projects
+      allow read, write: if isPartnerAdmin();
+      
+      // Board members can read attendance (read-only)
+      allow read: if isAuthenticated() && request.auth.token.role == 'board';
+      
+      // Users can read their own check-ins
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Users can create their own check-ins
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can update their own check-ins (if needed)
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Subscriptions - Stripe subscription records
+    match /subscriptions/{subscriptionId} {
+      // Admins can read all subscriptions
+      allow read: if isAdmin();
+      
+      // Users can read their own subscription
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Only webhook can write (handled server-side)
+      // Users cannot write directly - only via Stripe webhook
+      allow write: if false; // All writes handled via API/webhook
+    }
+    
+    // Events - Public events and ticketing
+    match /events/{eventId} {
+      // Public read access for all events
+      allow read: if true;
+      
+      // Only admins can create/update/delete events
+      allow write: if isAdmin();
+    }
+    
+    // Event Orders - Ticket purchase records
+    match /eventOrders/{orderId} {
+      // Admins can read all orders
+      allow read: if isAdmin();
+      
+      // Partner admins can read orders for events in their project
+      // Check both partnerProjectId and assignedProjectId (for backward compatibility)
+      // First check if event exists, then check projectId
+      allow read: if isPartnerAdmin() && 
+        resource.data.eventId != null &&
+        exists(/databases/$(database)/documents/events/$(resource.data.eventId)) &&
+        (
+          get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.projectId == request.auth.token.partnerProjectId ||
+          get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.projectId == request.auth.token.assignedProjectId
+        );
+      
+      // Users can read their own orders
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Users can create orders (for ticket purchases)
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Allow guest checkout (no userId)
+      allow create: if request.resource.data.userId == null;
+      
+      // Only webhook can update orders (to mark as paid)
+      allow update: if false; // All updates handled via API/webhook
+      
+      // No deletes allowed
+      allow delete: if false;
+    }
+    
+    // Event RSVPs - Free event reservations
+    match /eventRSVPs/{rsvpId} {
+      // Admins can read all RSVPs
+      allow read: if isAdmin();
+      
+      // Partner admins can read RSVPs for events in their project
+      // Check both partnerProjectId and assignedProjectId (for backward compatibility)
+      // First check if event exists, then check projectId
+      allow read: if isPartnerAdmin() && 
+        resource.data.eventId != null &&
+        exists(/databases/$(database)/documents/events/$(resource.data.eventId)) &&
+        (
+          get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.projectId == request.auth.token.partnerProjectId ||
+          get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.projectId == request.auth.token.assignedProjectId
+        );
+      
+      // Public can create RSVPs (for free events) - no authentication required
+      allow create: if true;
+      
+      // No updates or deletes allowed
+      allow update, delete: if false;
+    }
+    
+    // Event Notifications - User event history and notifications
+    match /eventNotifications/{notificationId} {
+      // Users can read their own notifications (by email)
+      allow read: if isAuthenticated() && 
+        (resource.data.email == request.auth.token.email || 
+         resource.data.userId == request.auth.uid);
+      
+      // Public can create notifications (for RSVPs)
+      allow create: if true;
+      
+      // Users can update their own notifications (mark as read)
+      allow update: if isAuthenticated() && 
+        (resource.data.email == request.auth.token.email || 
+         resource.data.userId == request.auth.uid);
+      
+      // Admins can read all notifications
+      allow read: if isAdmin();
+      
+      // No deletes allowed
+      allow delete: if false;
+    }
+    
+    // Project Rehearsal Media - Studio videos for /studio page
+    match /projectRehearsalMedia/{mediaId} {
+      // Admins can read/write all media
+      allow read, write: if isAdmin();
+      
+      // Partner admins can read/write media for their projects
+      allow read, write: if isPartnerAdmin();
+      
+      // Board members can read all media (read-only)
+      allow read: if isAuthenticated() && request.auth.token.role == 'board';
+      
+      // Subscribers can read public media (private: false)
+      // Note: Application logic filters by private field and subscription status
+      allow read: if isAuthenticated() && (
+        request.auth.token.role == 'subscriber' ||
+        request.auth.token.beam_subscriber == true ||
+        request.auth.token.subscriber == true ||
+        // Allow authenticated users - application will check subscription status
+        true
+      );
+      
+      // Only admins can write
+      allow write: if isAdmin() || isPartnerAdmin();
+    }
+    
+    // Chamber Projects - Studio chamber project content
+    match /chamberProjects/{projectId} {
+      // Admins can read/write all projects
+      allow read, write: if isAdmin();
+      
+      // Partner admins can read/write projects
+      allow read, write: if isPartnerAdmin();
+      
+      // Board members can read all projects (read-only)
+      allow read: if isAuthenticated() && request.auth.token.role == 'board';
+      
+      // Subscribers can read projects
+      allow read: if isAuthenticated() && (
+        request.auth.token.role == 'subscriber' ||
+        request.auth.token.beam_subscriber == true ||
+        request.auth.token.subscriber == true ||
+        true
+      );
+      
+      // Only admins can write
+      allow write: if isAdmin() || isPartnerAdmin();
+    }
+    
+    // Interviews - Studio interview content
+    match /interviews/{interviewId} {
+      // Admins can read/write all interviews
+      allow read, write: if isAdmin();
+      
+      // Partner admins can read/write interviews
+      allow read, write: if isPartnerAdmin();
+      
+      // Board members can read all interviews (read-only)
+      allow read: if isAuthenticated() && request.auth.token.role == 'board';
+      
+      // Subscribers can read interviews
+      allow read: if isAuthenticated() && (
+        request.auth.token.role == 'subscriber' ||
+        request.auth.token.beam_subscriber == true ||
+        request.auth.token.subscriber == true ||
+        true
+      );
+      
+      // Only admins can write
+      allow write: if isAdmin() || isPartnerAdmin();
+    }
+    
+    // Integrations - Google OAuth tokens and other integrations
+    match /integrations/{integrationId} {
+      // Only admins can read/write integrations
+      allow read, write: if isAdmin();
+      
+      // No other access allowed
+      allow read, write: if false;
+    }
+
+    // Viewer Areas - top-level area rails and visuals
+    match /viewerAreas/{areaId} {
+      // Public can read active viewer areas
+      allow read: if resource.data.active == true;
+
+      // Admins can manage viewer areas
+      allow write: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Viewer Sections - narrative arc sections per area
+    match /viewerSections/{sectionId} {
+      // Public can read active sections
+      allow read: if resource.data.active == true;
+
+      // Admin tooling read access (including inactive sections)
+      allow read: if isAdmin() || viewerAdminBypassEnabled();
+
+      // Admins can manage viewer sections
+      allow write: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Viewer Content - city/institution/role-filtered playable content
+    match /viewerContent/{contentId} {
+      function hasPreAuthSubmissionIdentity() {
+        return request.resource.data.submissionSessionId is string &&
+          request.resource.data.submissionSessionId.size() >= 8 &&
+          request.resource.data.submissionDisplayName is string &&
+          request.resource.data.submissionDisplayName.size() > 0;
+      }
+
+      // Public can read all published viewer content.
+      // Access-level filtering is currently handled in app logic.
+      allow read: if resource.data.isPublished == true;
+
+      // Temporary bypass for local admin tooling without sign-in.
+      allow read: if viewerAdminBypassEnabled();
+
+      // Admins can manage all viewer content
+      allow write: if isAdmin() || viewerAdminBypassEnabled();
+
+      // Authenticated participants can submit viewer entries they own
+      allow create: if isAuthenticated() &&
+        request.resource.data.createdByUid == request.auth.uid;
+
+      // Pre-account submissions can be created with session + name identity
+      allow create: if !isAuthenticated() &&
+        request.resource.data.createdByUid == '' &&
+        hasPreAuthSubmissionIdentity();
+
+      // Owners can update their own submissions
+      allow update: if isAuthenticated() &&
+        resource.data.createdByUid == request.auth.uid &&
+        request.resource.data.createdByUid == request.auth.uid;
+
+      // Pre-account submissions can be updated by session identity until claimed
+      allow update: if !isAuthenticated() &&
+        resource.data.createdByUid == '' &&
+        request.resource.data.createdByUid == '' &&
+        resource.data.submissionSessionId is string &&
+        request.resource.data.submissionSessionId is string &&
+        resource.data.submissionSessionId == request.resource.data.submissionSessionId &&
+        hasPreAuthSubmissionIdentity();
+
+      // Owners can delete their own submissions
+      allow delete: if isAuthenticated() &&
+        resource.data.createdByUid == request.auth.uid;
+    }
+
+    // Booking requests (viewer booking flow)
+    match /bookingRequests/{bookingId} {
+      // Admins can read/write all bookings
+      allow read, write: if isAdmin();
+
+      // Temporary bypass for local admin tooling without sign-in.
+      allow read, write: if viewerAdminBypassEnabled();
+
+      // Partner admins can read bookings
+      allow read: if isPartnerAdmin();
+
+      // Users can read their own bookings
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Creates are handled by secure API route.
+      allow create: if false;
+    }
+
+    // Viewer state for continue-watching
+    match /users/{userId}/viewerState/{stateId} {
+      // Owner can read/write their own viewer state
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+
+      // Admins can read/write all viewer state
+      allow read, write: if isAdmin();
+    }
+
+    // Viewer area role templates (avatar slots per area)
+    match /viewerAreaRoles/{areaId} {
+      // Allow reads for viewer popup role rail
+      allow read: if true;
+
+      // Admin management + temporary bypass for testing
+      allow write: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Viewer metadata option lists (cities, states, regions)
+    match /viewerMetadataOptions/{docId} {
+      allow read: if true;
+      allow write: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Viewer metadata suggestions from participants when options are missing
+    match /viewerMetadataSuggestions/{docId} {
+      allow read: if isAdmin() || viewerAdminBypassEnabled();
+      allow create: if true;
+      allow write: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Timecoded comments for viewer content review and collaboration
+    match /viewerComments/{commentId} {
+      // Read for all viewer roles except "select" (enforced in app)
+      allow read: if true;
+
+      // Partner/instructor write gating is handled in app; keep auth requirement at rules layer.
+      allow create: if isAuthenticated() || viewerAdminBypassEnabled();
+      allow update, delete: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Student learner movement/engagement telemetry events
+    match /studentSessionTelemetry/{eventId} {
+      // Allow browser-side capture in development/testing and anonymous preview flows.
+      allow create: if true;
+      allow read, write: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Viewer-linked supporting documents (scores, context, research notes)
+    match /viewerDocuments/{documentId} {
+      allow read: if true;
+      allow create: if isAuthenticated() || viewerAdminBypassEnabled();
+      allow update, delete: if isAdmin() || viewerAdminBypassEnabled();
+    }
+
+    // Role overview interest requests from viewer role CTAs
+    match /roleInterestRequests/{requestId} {
+      allow create: if
+        (request.resource.data.userId == null || request.resource.data.userId == '') ||
+        (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      allow read, update, delete: if isAdmin() || viewerAdminBypassEnabled();
+    }
+    
+    // Default deny rule for any unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

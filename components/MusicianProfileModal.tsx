@@ -1,0 +1,881 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  X, 
+  User, 
+  FileText, 
+  DollarSign, 
+  Heart,
+  Camera,
+  Upload,
+  Edit3,
+  Save,
+  Coins
+} from 'lucide-react'
+import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth'
+import { auth, db, storage } from '@/lib/firebase'
+import { collection, query, where, getDocs, orderBy, limit, doc, updateDoc, getDoc, setDoc } from 'firebase/firestore'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import DocumentSigner from './DocumentSigner'
+import DonationModal from './DonationModal'
+import AuthButtons from './AuthButtons'
+
+type MusicianProfile = {
+  name: string
+  email: string
+  status: string
+  source: string
+  notes?: string
+  bio?: string
+  headshotUrl?: string
+  mediaEmbedUrl?: string
+  supportLink?: string
+  instrument: string
+}
+
+interface MusicianProfileModalProps {
+  isOpen: boolean
+  onClose: () => void
+  musician: MusicianProfile | null
+}
+
+type TabType = 'profile' | 'documents' | 'payments' | 'donations'
+
+export default function MusicianProfileModal({ isOpen, onClose, musician }: MusicianProfileModalProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('profile')
+  const [user, setUser] = useState<any>(null)
+  
+  // Listen to auth state changes
+  useEffect(() => {
+    if (!auth) return
+    
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser)
+    })
+    
+    return () => unsubscribe()
+  }, [])
+  
+  // Reset to profile tab if user signs out while on documents/payments tab
+  useEffect(() => {
+    if (!user && (activeTab === 'documents' || activeTab === 'payments')) {
+      setActiveTab('profile')
+    }
+  }, [user, activeTab])
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [isEditingBio, setIsEditingBio] = useState(false)
+  const [bioText, setBioText] = useState(musician?.bio || '')
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLVideoElement>(null)
+  const [showCamera, setShowCamera] = useState(false)
+  const [showDocumentSigner, setShowDocumentSigner] = useState(false)
+  const [documentType, setDocumentType] = useState<'w9' | 'contract' | 'mediaRelease'>('w9')
+  const [donations, setDonations] = useState<Array<{donor: string, amount: number, date: string, message?: string}>>([])
+  const [loadingDonations, setLoadingDonations] = useState(false)
+  const [showDonationModal, setShowDonationModal] = useState(false)
+
+  // Payment information for reference (not available for withdrawal yet)
+  const mockPayments = {
+    usdBalance: 0, // Will be calculated based on attendance
+    beamCoins: 0, // Will be calculated based on attendance
+    recentTransactions: [
+      { date: 'TBD', description: 'Rehearsal Payment', amount: 25, type: 'USD' },
+      { date: 'TBD', description: 'Performance Payment', amount: 50, type: 'USD' },
+    ]
+  }
+
+  // Fetch donations from Firebase
+  useEffect(() => {
+    if (activeTab === 'donations' && musician) {
+      fetchDonations()
+    }
+  }, [activeTab, musician])
+
+  const fetchDonations = async () => {
+    if (!db || !musician) {
+      setDonations([])
+      return
+    }
+    
+    setLoadingDonations(true)
+    try {
+      // Try to fetch from Firebase
+      const donationsRef = collection(db, 'donations')
+      const q = query(
+        donationsRef,
+        where('recipientName', '==', musician.name),
+        orderBy('created_at', 'desc'),
+        limit(5)
+      )
+      
+      const querySnapshot = await getDocs(q)
+      
+      if (querySnapshot.empty) {
+        setDonations([])
+      } else {
+        const fetchedDonations = querySnapshot.docs.map(doc => ({
+          donor: doc.data().donor_name || 'Anonymous',
+          amount: doc.data().amount || 0,
+          date: doc.data().created_at?.toDate()?.toLocaleDateString() || new Date().toLocaleDateString(),
+          message: doc.data().message || ''
+        }))
+        setDonations(fetchedDonations)
+      }
+    } catch (error) {
+      console.error('Error fetching donations:', error)
+      setDonations([])
+    } finally {
+      setLoadingDonations(false)
+    }
+  }
+
+  const handleDocumentClick = (type: 'w9' | 'contract' | 'mediaRelease') => {
+    setDocumentType(type)
+    setShowDocumentSigner(true)
+  }
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) {
+      console.warn('Firebase Auth is not available. Please configure Firebase.')
+      setAuthError('Firebase Auth is not available. Please configure Firebase.')
+      return
+    }
+    
+    setAuthError(null)
+    
+    try {
+      const provider = new GoogleAuthProvider()
+      const result = await signInWithPopup(auth, provider)
+      setUser(result.user)
+    } catch (error: any) {
+      console.error('Error signing in:', error)
+      
+      // Handle specific Firebase errors
+      if (error.code === 'auth/configuration-not-found') {
+        setAuthError('Firebase Authentication is not enabled. Enable it in Firebase Console > Authentication.')
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setAuthError('This domain is not authorized. Add it to Firebase Console > Authentication > Settings > Authorized domains.')
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // Don't show error if user closes popup
+      } else {
+        setAuthError(`Authentication failed: ${error.message}`)
+      }
+    }
+  }
+
+  const handleSignOut = async () => {
+    if (!auth) {
+      console.warn('Firebase Auth is not available. Please configure Firebase.')
+      return
+    }
+    
+    try {
+      await signOut(auth)
+      setUser(null)
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
+  const handleTakePhoto = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      if (cameraRef.current) {
+        cameraRef.current.srcObject = stream
+        setShowCamera(true)
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error)
+    }
+  }
+
+  const capturePhoto = async () => {
+    if (!cameraRef.current || !storage || !user || !musician) return
+    
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    canvas.width = cameraRef.current.videoWidth
+    canvas.height = cameraRef.current.videoHeight
+    
+    if (context) {
+      context.drawImage(cameraRef.current, 0, 0)
+      
+      // Stop the camera stream first
+      const stream = cameraRef.current.srcObject as MediaStream
+      stream.getTracks().forEach(track => track.stop())
+      setShowCamera(false)
+      
+      // Convert canvas to blob
+      canvas.toBlob(async (blob) => {
+        if (!blob) return
+        
+        try {
+          setIsUploadingImage(true)
+          
+          // Create a unique filename
+          const filename = `profile_${user.uid}_${Date.now()}.png`
+          const storageRef = ref(storage, `musician-profiles/${filename}`)
+          
+          // Upload to Firebase Storage
+          await uploadBytes(storageRef, blob)
+          
+          // Get download URL
+          const downloadURL = await getDownloadURL(storageRef)
+          
+          // Save to Firestore - users collection
+          if (db && user) {
+            const userDocRef = doc(db, 'users', user.uid)
+            await updateDoc(userDocRef, {
+              headshotUrl: downloadURL,
+              updatedAt: new Date()
+            }).catch(() => {
+              // If document doesn't exist, create it
+              return setDoc(userDocRef, {
+                uid: user.uid,
+                name: musician.name,
+                email: musician.email || user.email,
+                headshotUrl: downloadURL,
+                updatedAt: new Date(),
+                createdAt: new Date()
+              })
+            })
+            
+            // Also update projectMusicians if musician has email/instrument
+            if (musician.email || musician.instrument) {
+              const projectMusicianQuery = query(
+                collection(db, 'projectMusicians'),
+                where('email', '==', musician.email || user.email)
+              )
+              const querySnapshot = await getDocs(projectMusicianQuery)
+              
+              querySnapshot.docs.forEach(async (docSnapshot) => {
+                await updateDoc(docSnapshot.ref, {
+                  headshotUrl: downloadURL,
+                  updatedAt: new Date()
+                })
+              })
+            }
+          }
+          
+          console.log('Photo uploaded successfully:', downloadURL)
+          // You could show a success message here
+          
+        } catch (error) {
+          console.error('Error uploading photo:', error)
+          alert('Failed to upload photo. Please try again.')
+        } finally {
+          setIsUploadingImage(false)
+        }
+      }, 'image/png', 0.95)
+    }
+  }
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !storage || !user || !musician) return
+    
+    try {
+      setIsUploadingImage(true)
+      
+      // Create a unique filename
+      const filename = `profile_${user.uid}_${Date.now()}.${file.name.split('.').pop()}`
+      const storageRef = ref(storage, `musician-profiles/${filename}`)
+      
+      // Upload to Firebase Storage
+      await uploadBytes(storageRef, file)
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(storageRef)
+      
+      // Save to Firestore - users collection
+      if (db && user) {
+        const userDocRef = doc(db, 'users', user.uid)
+        await updateDoc(userDocRef, {
+          headshotUrl: downloadURL,
+          updatedAt: new Date()
+        }).catch(() => {
+          // If document doesn't exist, create it
+          return setDoc(userDocRef, {
+            uid: user.uid,
+            name: musician.name,
+            email: musician.email || user.email,
+            headshotUrl: downloadURL,
+            updatedAt: new Date(),
+            createdAt: new Date()
+          })
+        })
+        
+        // Also update projectMusicians if musician has email/instrument
+        if (musician.email || musician.instrument) {
+          const projectMusicianQuery = query(
+            collection(db, 'projectMusicians'),
+            where('email', '==', musician.email || user.email)
+          )
+          const querySnapshot = await getDocs(projectMusicianQuery)
+          
+          querySnapshot.docs.forEach(async (docSnapshot) => {
+            await updateDoc(docSnapshot.ref, {
+              headshotUrl: downloadURL,
+              updatedAt: new Date()
+            })
+          })
+        }
+      }
+      
+      console.log('Image uploaded successfully:', downloadURL)
+      // You could show a success message here
+      
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      alert('Failed to upload image. Please try again.')
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
+  const saveBio = async () => {
+    if (!user || !db || !musician) return
+    
+    try {
+      setIsEditingBio(false)
+      
+      // Save to users collection
+      const userDocRef = doc(db, 'users', user.uid)
+      await updateDoc(userDocRef, {
+        bio: bioText,
+        updatedAt: new Date()
+      }).catch(() => {
+        // If document doesn't exist, create it
+        return setDoc(userDocRef, {
+          uid: user.uid,
+          name: musician.name,
+          email: musician.email || user.email,
+          bio: bioText,
+          headshotUrl: musician.headshotUrl || null,
+          updatedAt: new Date(),
+          createdAt: new Date()
+        })
+      })
+      
+      // Also update projectMusicians if this is for a project
+      if (musician.instrument) {
+        const projectMusicianQuery = query(
+          collection(db, 'projectMusicians'),
+          where('email', '==', musician.email || user.email)
+        )
+        const querySnapshot = await getDocs(projectMusicianQuery)
+        
+        querySnapshot.docs.forEach(async (docSnapshot) => {
+          await updateDoc(docSnapshot.ref, {
+            bio: bioText,
+            updatedAt: new Date()
+          })
+        })
+      }
+      
+      console.log('✅ Bio saved successfully')
+    } catch (error) {
+      console.error('Error saving bio:', error)
+      alert('Failed to save bio. Please try again.')
+      setIsEditingBio(true)
+    }
+  }
+
+  // Only show documents and payments tabs if user is signed in
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: User },
+    ...(user ? [{ id: 'documents', label: 'Documents', icon: FileText }] : []),
+    ...(user ? [{ id: 'payments', label: 'Payments', icon: DollarSign }] : []),
+    { id: 'donations', label: 'Donations', icon: Heart }
+  ]
+
+  if (!isOpen || !musician) return null
+
+  return (
+    <div className="fixed inset-0 z-[105] flex items-center justify-center px-4">
+      <div
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-4xl max-h-[90vh] rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex items-center space-x-4">
+            {musician.headshotUrl ? (
+              <img
+                src={musician.headshotUrl}
+                alt={`${musician.name} headshot`}
+                className="h-12 w-12 rounded-full object-cover border border-white/10"
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 border border-white/10 text-lg font-semibold text-white">
+                {musician.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </div>
+            )}
+            <div>
+              <h2 className="text-xl font-semibold text-white">{musician.name}</h2>
+              <p className="text-sm text-purple-200">{musician.instrument}</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors"
+            aria-label="Close modal"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Auth Section */}
+        <div className="p-6 border-b border-white/10">
+          {!auth ? (
+            <div className="text-center py-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                <p className="text-yellow-200 text-sm">
+                  <strong>Firebase not configured:</strong> Please set up your Firebase environment variables to enable authentication features.
+                </p>
+                <p className="text-yellow-300 text-xs mt-2">
+                  Check your .env.local file for Firebase configuration.
+                </p>
+              </div>
+            </div>
+          ) : !user ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-center">
+                <div className="w-full max-w-md">
+                  <AuthButtons
+                    onSignInSuccess={() => {
+                      // Auth state will update automatically via Firebase
+                      // The component will re-render showing the profile content
+                    }}
+                    onError={(error) => {
+                      setAuthError(error)
+                    }}
+                    mobileFriendly={true}
+                  />
+                </div>
+              </div>
+              {authError && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                  <p className="text-red-300 text-sm">{authError}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <img
+                  src={user.photoURL || ''}
+                  alt={user.displayName || 'User'}
+                  className="h-10 w-10 rounded-full"
+                />
+                <div>
+                  <p className="text-white font-medium">{user.displayName}</p>
+                  <p className="text-sm text-gray-400">{user.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-white/10">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as TabType)}
+              className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'text-purple-400 border-b-2 border-purple-400'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Show message if user tries to access documents/payments without signing in */}
+        {!user && (activeTab === 'documents' || activeTab === 'payments') && (
+          <div className="p-6 text-center">
+            <p className="text-gray-400 mb-4">Please sign in to access {activeTab === 'documents' ? 'documents' : 'payments'}.</p>
+            <div className="max-w-md mx-auto">
+              <AuthButtons
+                onSignInSuccess={() => {
+                  // Auth state will update automatically via Firebase
+                  // The component will re-render showing the documents/payments content
+                }}
+                onError={(error) => {
+                  setAuthError(error)
+                }}
+                mobileFriendly={true}
+              />
+            </div>
+            {authError && (
+              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-red-200 text-sm">{authError}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab Content */}
+        {!user && (activeTab === 'documents' || activeTab === 'payments') ? null : (
+        <div className="p-6 max-h-96 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {activeTab === 'profile' && (
+              <motion.div
+                key="profile"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    {musician.headshotUrl ? (
+                      <img
+                        src={musician.headshotUrl}
+                        alt={`${musician.name} headshot`}
+                        className="h-24 w-24 rounded-2xl object-cover border border-white/10"
+                      />
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white/10 border border-white/10 text-2xl font-semibold text-white">
+                        {musician.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </div>
+                    )}
+                    {user && (
+                      <div className="absolute -bottom-2 -right-2 flex space-x-1">
+                        <button
+                          onClick={handleTakePhoto}
+                          className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full transition-colors"
+                          title="Take a photo"
+                        >
+                          <Camera className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors"
+                          title="Upload image"
+                        >
+                          <Upload className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{musician.name}</h3>
+                    <p className="text-purple-200">{musician.instrument}</p>
+                    <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
+                      musician.status === 'Confirmed' 
+                        ? 'bg-green-500/20 text-green-300'
+                        : musician.status === 'Interested'
+                        ? 'bg-blue-500/20 text-blue-300'
+                        : musician.status === 'Pending'
+                        ? 'bg-yellow-500/20 text-yellow-300'
+                        : 'bg-gray-500/20 text-gray-300'
+                    }`}>
+                      {musician.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-md font-semibold text-white">Biography</h4>
+                    {user && (
+                      <button
+                        onClick={() => setIsEditingBio(!isEditingBio)}
+                        className="text-purple-400 hover:text-purple-300 transition-colors"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {isEditingBio ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={bioText}
+                        onChange={(e) => setBioText(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 h-32 resize-none"
+                        placeholder="Tell us about yourself..."
+                      />
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={saveBio}
+                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>Save</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsEditingBio(false)
+                            setBioText(musician?.bio || '')
+                          }}
+                          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-300 leading-relaxed">
+                      {bioText || 'No biography available yet.'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Camera Modal */}
+                {showCamera && (
+                  <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90">
+                    <div className="relative w-full max-w-md">
+                      <video
+                        ref={cameraRef}
+                        autoPlay
+                        playsInline
+                        className="w-full rounded-lg"
+                      />
+                      <div className="flex justify-center space-x-4 mt-4">
+                        <button
+                          onClick={capturePhoto}
+                          className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          Capture
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowCamera(false)
+                            const stream = cameraRef.current?.srcObject as MediaStream
+                            stream?.getTracks().forEach(track => track.stop())
+                          }}
+                          className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </motion.div>
+            )}
+
+            {activeTab === 'documents' && (
+              <motion.div
+                key="documents"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-4"
+              >
+                <h4 className="text-md font-semibold text-white mb-4">Required Documents</h4>
+                
+                <div className="space-y-4">
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <h5 className="text-white font-medium mb-2">W-9 / Contractor Information Form</h5>
+                    <p className="text-sm text-gray-400 mb-3">Taxpayer identification form for contractor payments</p>
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleDocumentClick('w9')}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span>Fill Out & Sign W-9</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <h5 className="text-white font-medium mb-2">Performance Contract</h5>
+                    <p className="text-sm text-gray-400 mb-3">Agreement for participation in the concert</p>
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleDocumentClick('contract')}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span>Fill Out & Sign W-9</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <h5 className="text-white font-medium mb-2">Media Release</h5>
+                    <p className="text-sm text-gray-400 mb-3">Permission for photography and recording</p>
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleDocumentClick('mediaRelease')}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span>Fill Out & Sign W-9</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'payments' && (
+              <motion.div
+                key="payments"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <DollarSign className="w-5 h-5 text-green-400" />
+                      <h4 className="text-white font-semibold">USD Balance</h4>
+                    </div>
+                    <p className="text-2xl font-bold text-green-400">${mockPayments.usdBalance}</p>
+                    <p className="text-sm text-gray-400">Earned: $0 (not yet available for withdrawal)</p>
+                  </div>
+                  
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Coins className="w-5 h-5 text-yellow-400" />
+                      <h4 className="text-white font-semibold">BEAM Coins</h4>
+                    </div>
+                    <p className="text-2xl font-bold text-yellow-400">{mockPayments.beamCoins} BEAM</p>
+                    <p className="text-sm text-gray-400">Digital work credits (not yet earned)</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-md font-semibold text-white mb-2">Payment Schedule (Reference Only)</h4>
+                  <p className="text-xs text-gray-400 mb-4 italic">Payments not yet available - awaiting attendance confirmation</p>
+                  <div className="space-y-3">
+                    {mockPayments.recentTransactions.map((transaction, index) => (
+                      <div key={index} className="bg-white/5 rounded-lg p-3 border border-white/10">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-white font-medium">{transaction.description}</p>
+                            <p className="text-sm text-gray-400">{transaction.date}</p>
+                          </div>
+                          <span className={`font-semibold ${
+                            transaction.type === 'USD' ? 'text-green-400' : 'text-yellow-400'
+                          }`}>
+                            {transaction.type === 'USD' ? '$' : ''}{transaction.amount}
+                            {transaction.type === 'BEAM' ? ' BEAM' : ''}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'donations' && (
+              <motion.div
+                key="donations"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-md font-semibold text-white">Recent Donations</h4>
+                  <button
+                    onClick={() => setShowDonationModal(true)}
+                    className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    <Heart className="w-4 h-4" />
+                    <span>Donate</span>
+                  </button>
+                </div>
+                
+                {loadingDonations ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                  </div>
+                ) : donations.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Heart className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-400">No donations yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {donations.map((donation, index) => (
+                      <div key={index} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="text-white font-medium">{donation.donor}</p>
+                            <p className="text-sm text-gray-400">{donation.date}</p>
+                          </div>
+                          <span className="text-green-400 font-semibold">${donation.amount}</span>
+                        </div>
+                        {donation.message && (
+                          <p className="text-sm text-gray-300 italic">"{donation.message}"</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {donations.length > 0 && (
+                  <div className="bg-purple-500/10 rounded-lg p-4 border border-purple-500/20">
+                    <p className="text-purple-200 text-sm">
+                      <strong>Total Donations:</strong> ${donations.reduce((sum, d) => sum + d.amount, 0)}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        )}
+      </motion.div>
+
+      {/* Document Signer Modal */}
+      <DocumentSigner
+        isOpen={showDocumentSigner}
+        onClose={() => setShowDocumentSigner(false)}
+        documentType={documentType}
+        musicianName={musician?.name || ''}
+        musicianEmail={musician?.email || ''}
+      />
+
+      {/* Donation Modal */}
+      <DonationModal
+        isOpen={showDonationModal}
+        onClose={() => setShowDonationModal(false)}
+        musicianName={musician?.name || ''}
+        musicianEmail={musician?.email || ''}
+      />
+    </div>
+  )
+}
