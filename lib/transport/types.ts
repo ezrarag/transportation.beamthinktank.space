@@ -80,3 +80,75 @@ export type PartnershipTier = {
 }
 
 export type HomeSlide = HeroSlide
+
+// ─── Fleet types ──────────────────────────────────────────────────────────────
+
+export type VehicleAngle = '01' | '13' | '21'
+
+export type VehicleHealthStatus = 'good' | 'needs-attention' | 'critical'
+
+export type VehicleFleetStatus = 'rag' | 'want' | 'restore'
+
+export type FleetVehicle = {
+  id: string
+  clientId: string
+  make: string
+  model: string
+  year: number
+  vin: string
+  licensePlate: string
+  color: string
+  config: string
+  engine: string
+  payload: string
+  currentMileage: number
+  healthStatus: VehicleHealthStatus
+  lastServiceDate: string | null
+  nextServiceDue: string | null
+  notes: string
+  status: VehicleFleetStatus
+  statusLabel: string
+  priceRange: string
+  purpose: string
+}
+
+export type FleetServiceRecord = {
+  id: string
+  vehicleId: string
+  clientId: string
+  date: string
+  participantIds: string[]
+  supervisorId: string
+  servicesPerformed: string[]
+  partsUsed: { partName: string; partNumber: string; cost: number }[]
+  laborHours: number
+  notes: string
+  signedOffBy: string
+  photoUrls: string[]
+  approved: boolean
+}
+
+export type FleetClientType = 'fleet' | 'project' | 'community' | 'anchor'
+export type FleetContractStatus = 'draft' | 'sent' | 'signed' | 'active' | 'expired'
+
+export type FleetClient = {
+  id: string
+  name: string
+  type: FleetClientType
+  status: 'active' | 'pending' | 'paused'
+  contactName: string
+  contactEmail: string
+  fleetSize: number
+  assignedCohortLeadId: string
+  assignedParticipants: string[]
+  serviceSchedule: {
+    frequency: 'weekly' | 'monthly' | 'as-needed'
+    dayOfWeek?: string
+    timeWindow?: string
+  }
+  monthlyRatePerVehicle: number
+  contractStartDate: string | null
+  contractEndDate: string | null
+  contractStatus: FleetContractStatus
+  notes: string
+}

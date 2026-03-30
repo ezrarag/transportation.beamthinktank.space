@@ -4,9 +4,7 @@ import { Timestamp } from 'firebase-admin/firestore'
 import { adminDb } from '@/lib/firebase-admin'
 
 function createTransporter() {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-    return null
-  }
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) return null
 
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -29,52 +27,90 @@ export async function POST(request: NextRequest) {
       name?: string
       email?: string
       phone?: string
-      role?: string
+      participantType?: string
+      role?: string               // legacy field — keep for backwards compat
       institution?: string
       availability?: string
       interests?: string[]
       story?: string
+      // RAG context fields
+      ragRoleId?: string
+      ragRoleTitle?: string
+      ragTrack?: string
+      fromRag?: boolean
     }
 
-    if (!payload.name || !payload.email || !payload.phone || !payload.role || !payload.availability || !payload.story) {
+    // Support both old "role" field and new "participantType" field
+    const participantType = payload.participantType || payload.role || ''
+
+    if (
+      !payload.name ||
+      !payload.email ||
+      !payload.phone ||
+      !participantType ||
+      !payload.availability ||
+      !payload.story
+    ) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
     }
 
     const record = {
-      name: payload.name.trim(),
-      email: payload.email.trim(),
-      phone: payload.phone.trim(),
-      role: payload.role.trim(),
-      institution: (payload.institution || '').trim(),
-      availability: payload.availability.trim(),
-      interests: Array.isArray(payload.interests) ? payload.interests : [],
-      story: payload.story.trim(),
-      status: 'new',
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      name:            payload.name.trim(),
+      email:           payload.email.trim(),
+      phone:           payload.phone.trim(),
+      participantType: participantType.trim(),
+      institution:     (payload.institution || '').trim(),
+      availability:    payload.availability.trim(),
+      interests:       Array.isArray(payload.interests) ? payload.interests : [],
+      story:           payload.story.trim(),
+      // RAG source tracking
+      ragRoleId:       payload.ragRoleId || '',
+      ragRoleTitle:    payload.ragRoleTitle || '',
+      ragTrack:        payload.ragTrack || '',
+      fromRag:         payload.fromRag ?? false,
+      sourceSite:      'transport.beamthinktank.space',
+      status:          'new',
+      createdAt:       Timestamp.now(),
+      updatedAt:       Timestamp.now(),
     }
 
-    const docRef = await adminDb.collection('transport').doc('cohortApplications').collection('entries').add(record)
+    const docRef = await adminDb
+      .collection('transport')
+      .doc('cohortApplications')
+      .collection('entries')
+      .add(record)
 
+    // Email notification
     const transporter = createTransporter()
     if (transporter) {
-      const adminRecipient = process.env.TRANSPORT_APPLICATION_EMAIL || process.env.SMTP_TO || process.env.SMTP_FROM
+      const adminRecipient =
+        process.env.TRANSPORT_APPLICATION_EMAIL ||
+        process.env.SMTP_TO ||
+        process.env.SMTP_FROM
+
       if (adminRecipient) {
+        const ragContext = record.fromRag && record.ragRoleTitle
+          ? `\nRAG Role: ${record.ragRoleTitle} (${record.ragRoleId}) — ${record.ragTrack} track`
+          : ''
+
         await transporter.sendMail({
           from: process.env.SMTP_FROM || 'noreply@beamthinktank.space',
           to: adminRecipient,
-          subject: `New BEAM Transportation cohort enrollment: ${record.name}`,
+          subject: `New BEAM Transportation cohort enrollment: ${record.name}${record.fromRag ? ` [from RAG — ${record.ragRoleTitle}]` : ''}`,
           text: [
             `Name: ${record.name}`,
             `Email: ${record.email}`,
             `Phone: ${record.phone}`,
-            `Role: ${record.role}`,
+            `Participant Type: ${record.participantType}`,
             `Institution: ${record.institution}`,
             `Availability: ${record.availability}`,
-            `Interests: ${record.interests.join(', ')}`,
+            `Areas of Interest: ${record.interests.join(', ')}`,
+            ragContext,
             '',
             record.story,
-          ].join('\n'),
+          ]
+            .filter(Boolean)
+            .join('\n'),
         })
       }
     }
