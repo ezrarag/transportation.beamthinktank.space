@@ -126,7 +126,7 @@ export default function ProfilePage() {
         photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       }
 
-  const activeProfile = profile || {
+  const activeProfile: TransportParticipantProfile = profile || {
     ...DEFAULT_PROFILE,
     uid: displayUserPayload.uid,
     displayName: displayUserPayload.displayName,

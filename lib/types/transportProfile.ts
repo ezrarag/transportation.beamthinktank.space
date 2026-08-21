@@ -7,9 +7,9 @@ export interface TransportTargetLocation {
 
 export interface TransportParticipantProfile {
   uid?: string
-  displayName?: string
-  email?: string
-  avatarUrl?: string
+  displayName?: string | null
+  email?: string | null
+  avatarUrl?: string | null
   isVerified?: boolean
   activeHub: string
   claimedRoles: string[]
