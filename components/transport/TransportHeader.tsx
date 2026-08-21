@@ -7,6 +7,7 @@ import { resolvePortalPath } from '@/lib/portal/routes'
 const navItems = [
   { label: 'Home',    href: resolvePortalPath('/', 'transport') },
   { label: 'Profile', href: '/profile' },
+  { label: 'Sponsor', href: '/sponsor' },
   { label: 'Viewer',  href: resolvePortalPath('/viewer', 'transport') },
   { label: 'Fleet',   href: '/fleet' },
   { label: 'Partner', href: resolvePortalPath('/partner', 'transport') },
