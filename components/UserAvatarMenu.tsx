@@ -336,6 +336,14 @@ export default function UserAvatarMenu({ scrollY = 0, showThreshold = 200 }: Use
                 {/* Actions */}
                 <div className="border-t border-[#D4AF37]/20">
                   <Link
+                    href="/profile"
+                    onClick={() => setShowMenu(false)}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left font-semibold text-emerald-700"
+                  >
+                    <User className="h-5 w-5 text-emerald-600" />
+                    <span>Participant Profile</span>
+                  </Link>
+                  <Link
                     href="/tickets"
                     onClick={() => setShowMenu(false)}
                     className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
