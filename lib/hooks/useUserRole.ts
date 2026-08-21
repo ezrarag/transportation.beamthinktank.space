@@ -8,13 +8,16 @@ import { auth, db } from '../firebase'
 export type UserRole = 'beam_admin' | 'partner_admin' | 'board' | 'musician' | 'subscriber' | 'audience'
 
 const adminAuthBypassEnabled =
-  process.env.NEXT_PUBLIC_ADMIN_AUTH_BYPASS === '1' ||
-  (process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_ADMIN_AUTH_BYPASS !== '0')
+  process.env.NEXT_PUBLIC_ADMIN_AUTH_BYPASS === '1'
 
 interface UserWithRole {
   user: User | null
   role: UserRole | null
   loading: boolean
+}
+
+interface UseUserRoleOptions {
+  allowAdminBypass?: boolean
 }
 
 const BYPASS_TOKEN_RESULT = {
@@ -38,34 +41,35 @@ const mockAdminUser = {
   getIdTokenResult: async () => BYPASS_TOKEN_RESULT,
 } as unknown as User
 
-export function useUserRole(): UserWithRole {
+export function useUserRole(options: UseUserRoleOptions = {}): UserWithRole {
+  const { allowAdminBypass = true } = options
   const [user, setUser] = useState<User | null>(null)
   const [role, setRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
+  const bypassEnabled = allowAdminBypass && adminAuthBypassEnabled
 
   useEffect(() => {
-    if (adminAuthBypassEnabled) {
-      setUser(mockAdminUser)
-      setRole('beam_admin')
-      setLoading(false)
-      return
-    }
-
     // Check if auth is initialized
-    if (!auth || !db) {
-      console.warn('Firebase auth is not initialized. Please check your environment variables.')
+    if (!auth) {
+      if (bypassEnabled) {
+        setUser(mockAdminUser)
+        setRole('beam_admin')
+      } else {
+        console.warn('Firebase auth is not initialized. Please check your environment variables.')
+      }
       setLoading(false)
       return
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user)
+    const unsubscribe = onAuthStateChanged(auth, async (realUser) => {
+      const effectiveUser = realUser || (bypassEnabled ? mockAdminUser : null)
+      setUser(effectiveUser)
       
-      if (user) {
+      if (effectiveUser) {
         try {
           // First, check custom claims (for admin roles set via Firebase Admin SDK)
-          const tokenResult = await user.getIdTokenResult()
-          const claims = tokenResult.claims
+          const tokenResult = await effectiveUser.getIdTokenResult().catch(() => null)
+          const claims = tokenResult?.claims || {}
           
           // Check for admin claim in custom claims
           if (claims.beam_admin === true || claims.role === 'beam_admin') {
@@ -96,17 +100,20 @@ export function useUserRole(): UserWithRole {
           }
           
           // Fall back to Firestore user document
-          const userDoc = await getDoc(doc(db, 'users', user.uid))
-          if (userDoc.exists()) {
-            const userData = userDoc.data()
-            // Check if user is a subscriber
-            if (userData.subscriber === true) {
-              setRole('subscriber')
+          if (db) {
+            const userDoc = await getDoc(doc(db, 'users', effectiveUser.uid)).catch(() => null)
+            if (userDoc && userDoc.exists()) {
+              const userData = userDoc.data()
+              if (userData.subscriber === true) {
+                setRole('subscriber')
+              } else {
+                setRole(userData.role || 'musician')
+              }
             } else {
-              setRole(userData.role || 'musician')
+              setRole('musician') // Default role
             }
           } else {
-            setRole('musician') // Default role
+            setRole('musician')
           }
         } catch (error) {
           console.error('Error fetching user role:', error)
@@ -120,16 +127,17 @@ export function useUserRole(): UserWithRole {
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [bypassEnabled])
 
   return { user, role, loading }
 }
 
-export function useRequireRole(requiredRole: UserRole) {
-  const { user, role, loading } = useUserRole()
+export function useRequireRole(requiredRole: UserRole, options: UseUserRoleOptions = {}) {
+  const { allowAdminBypass = true } = options
+  const { user, role, loading } = useUserRole({ allowAdminBypass })
   
   const hasAccess = !loading && (
-    adminAuthBypassEnabled ||
+    (allowAdminBypass && adminAuthBypassEnabled) ||
     Boolean(user && role === requiredRole)
   )
   
@@ -142,14 +150,9 @@ export function useRequireRole(requiredRole: UserRole) {
   }
 }
 
-/**
- * Hook to check if user has board access (board role or higher)
- * Board users have read-only access to analytics and project data
- */
 export function useBoardAccess() {
   const { user, role, loading } = useUserRole()
   
-  // Board, partner_admin, and beam_admin all have board access
   const hasAccess = !loading && (
     adminAuthBypassEnabled ||
     Boolean(
@@ -161,7 +164,7 @@ export function useBoardAccess() {
     )
   )
   
-  const isReadOnly = role === 'board' // Only board role is read-only
+  const isReadOnly = role === 'board'
   
   return {
     user,
