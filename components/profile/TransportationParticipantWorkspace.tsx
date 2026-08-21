@@ -26,7 +26,7 @@ import {
 import { doc, updateDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import DocumentSigner from '@/components/DocumentSigner'
-import { ragFleetVehicles, wantFleetVehicles, buildImaginUrl } from '@/lib/transport/fleet'
+import { allVehicles, buildImaginUrl } from '@/lib/transport/fleet'
 import { transportAreas } from '@/lib/transport/areas'
 import { cohortRoleCards, compensationTiers } from '@/lib/transport/cohort'
 import type { FleetVehicle } from '@/lib/transport/types'
@@ -51,7 +51,7 @@ const AVAILABLE_HUBS = [
 ]
 
 // Combine all fleet vehicles into a comprehensive list for node matching
-const allFleetVehicles: FleetVehicle[] = [...ragFleetVehicles, ...wantFleetVehicles]
+const allFleetVehicles: FleetVehicle[] = allVehicles
 
 export function TransportationParticipantWorkspace({
   initialProfile,
