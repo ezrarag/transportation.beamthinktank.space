@@ -7,8 +7,10 @@ import { auth } from '@/lib/firebase'
 import { useUserRole } from '@/lib/hooks/useUserRole'
 import { User, LogOut, LogIn, LayoutDashboard, ChevronDown, Settings, Home } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function UserMenu() {
+  const router = useRouter()
   const { user, role, loading } = useUserRole()
   const [isOpen, setIsOpen] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
@@ -25,6 +27,7 @@ export default function UserMenu() {
     try {
       const provider = new GoogleAuthProvider()
       await signInWithPopup(auth, provider)
+      router.push('/profile')
     } catch (error: any) {
       console.error('Error signing in:', error)
       if (error.code !== 'auth/popup-closed-by-user') {
@@ -149,7 +152,7 @@ export default function UserMenu() {
                   <div className="p-2 space-y-1">
                     {/* Profile/Account Link */}
                     <Link
-                      href="/members"
+                      href="/profile"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-orchestra-gold/10 text-orchestra-cream transition-colors group"
                     >
