@@ -46,13 +46,21 @@ export default function ProfilePage() {
           const profileRef = doc(db, 'participantProfiles', currentUser.uid)
           const snap = await getDoc(profileRef).catch(() => null)
 
+          const googlePhoto = currentUser.photoURL || null
+          const googleName = currentUser.displayName || null
+          const googleEmail = currentUser.email || null
+
           if (snap && snap.exists()) {
-            const data = snap.data() as Partial<TransportParticipantProfile>
+            const data = snap.data() as Partial<TransportParticipantProfile> & { photoURL?: string; headshotUrl?: string }
+            const resolvedAvatar = googlePhoto || data.avatarUrl || data.photoURL || data.headshotUrl || ''
+            const resolvedName = googleName || data.displayName || 'Transportation Participant'
+            const resolvedEmail = googleEmail || data.email || ''
+
             setProfile({
               uid: currentUser.uid,
-              displayName: data.displayName || currentUser.displayName || 'Transportation Participant',
-              email: data.email || currentUser.email || '',
-              avatarUrl: data.avatarUrl || currentUser.photoURL || '',
+              displayName: resolvedName,
+              email: resolvedEmail,
+              avatarUrl: resolvedAvatar,
               isVerified: true,
               activeHub: data.activeHub || DEFAULT_PROFILE.activeHub,
               claimedRoles: Array.isArray(data.claimedRoles) ? data.claimedRoles : DEFAULT_PROFILE.claimedRoles,
@@ -65,14 +73,19 @@ export default function ProfilePage() {
               contractSignedDate: data.contractSignedDate,
               targetLocations: data.targetLocations || DEFAULT_PROFILE.targetLocations,
             })
+
+            // Sync updated Google photoURL/metadata to Firestore if different
+            if (googlePhoto && data.avatarUrl !== googlePhoto) {
+              await setDoc(profileRef, { avatarUrl: googlePhoto, photoURL: googlePhoto, displayName: resolvedName, email: resolvedEmail }, { merge: true }).catch(() => null)
+            }
           } else {
-            // Silently initialize default profile in Firestore
+            // Silently initialize default profile in Firestore with Google metadata
             const newProfile: TransportParticipantProfile = {
               ...DEFAULT_PROFILE,
               uid: currentUser.uid,
-              displayName: currentUser.displayName || 'Transportation Participant',
-              email: currentUser.email || '',
-              avatarUrl: currentUser.photoURL || '',
+              displayName: googleName || 'Transportation Participant',
+              email: googleEmail || '',
+              avatarUrl: googlePhoto || '',
               isVerified: true,
               updatedAt: new Date().toISOString(),
             }

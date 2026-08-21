@@ -222,9 +222,9 @@ export function TransportationParticipantWorkspace({
     return matchesSearch && matchesHealth && matchesCorridor
   })
 
-  const displayName = profile.displayName || user?.displayName || 'Transportation Participant'
-  const email = profile.email || user?.email || 'participant@beamthinktank.space'
-  const avatarUrl = profile.avatarUrl || user?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+  const displayName = user?.displayName || profile.displayName || 'Transportation Participant'
+  const email = user?.email || profile.email || 'participant@beamthinktank.space'
+  const avatarUrl = user?.photoURL || profile.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
 
   return (
     <div className="min-h-screen bg-[#0A0D14] text-slate-100 pb-20">
