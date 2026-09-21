@@ -1,5 +1,6 @@
 import {
   Building2,
+  Calendar,
   Car,
   CheckSquare,
   FileText,
@@ -142,6 +143,14 @@ const adminNavGroups: AdminNavGroup[] = [
         label: 'Launch Checklist',
         href: '/admin/launch-checklist',
         icon: CheckSquare,
+        enabled: true,
+        roles: ['beam_admin'],
+      },
+      {
+        key: 'implementation-timeline',
+        label: 'Implementation Timeline',
+        href: '/admin/implementation-timeline',
+        icon: Calendar,
         enabled: true,
         roles: ['beam_admin'],
       },
