@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth'
+import { signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useUserRole } from '@/lib/hooks/useUserRole'
-import { User, LogOut, LogIn, LayoutDashboard, ChevronDown, Settings, Home } from 'lucide-react'
+import { User, LogOut, LogIn, LayoutDashboard, ChevronDown, Settings, Home, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -15,9 +15,21 @@ export default function UserMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (auth) {
+      void getRedirectResult(auth)
+        .then((res) => {
+          if (res?.user) router.push('/profile')
+        })
+        .catch((err) => {
+          console.warn('Redirect auth notice:', err)
+        })
+    }
+  }, [router])
+
   const handleSignIn = async () => {
     if (!auth) {
-      setAuthError('Firebase Auth is not available. Please configure Firebase.')
+      setAuthError('Firebase Auth is not configured. Missing NEXT_PUBLIC_FIREBASE_* environment variables.')
       return
     }
 
@@ -26,12 +38,17 @@ export default function UserMenu() {
 
     try {
       const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
       await signInWithPopup(auth, provider)
       router.push('/profile')
     } catch (error: any) {
-      console.error('Error signing in:', error)
-      if (error.code !== 'auth/popup-closed-by-user') {
-        setAuthError(`Authentication failed: ${error.message}`)
+      console.warn('Popup sign in error, attempting redirect fallback:', error)
+      try {
+        const provider = new GoogleAuthProvider()
+        provider.setCustomParameters({ prompt: 'select_account' })
+        await signInWithRedirect(auth, provider)
+      } catch (redirectErr: any) {
+        setAuthError(`Authentication failed: ${error.message || redirectErr.message}`)
       }
     }
   }
@@ -70,10 +87,25 @@ export default function UserMenu() {
 
   return (
     <div className="user-menu-container relative">
+      {authError && (
+        <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-red-950/95 border border-red-500/50 p-3.5 text-xs text-red-200 shadow-2xl z-50 backdrop-blur-lg">
+          <div className="flex items-center gap-2 font-bold text-red-100 mb-1">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <span>Sign In Notice</span>
+          </div>
+          <p className="leading-relaxed text-[11px] text-red-200/90">{authError}</p>
+          <button
+            onClick={() => setAuthError(null)}
+            className="mt-2.5 inline-block text-[10px] font-semibold text-red-300 hover:text-white underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       {!user ? (
         <button
           onClick={handleSignIn}
-          className="flex items-center space-x-2 px-4 py-2 bg-orchestra-gold/20 hover:bg-orchestra-gold/30 text-orchestra-cream rounded-lg transition-colors border border-orchestra-gold/30"
+          className="flex items-center space-x-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg transition-colors border border-emerald-500/40 cursor-pointer"
         >
           <LogIn className="h-4 w-4" />
           <span className="hidden sm:inline">Sign In</span>

@@ -85,11 +85,12 @@ export default function ProgressiveIntakeWizardModal({
 
   const handleGoogleAuth = async () => {
     if (!auth) {
-      setErrorMsg('Firebase Auth is unavailable.')
+      setErrorMsg('Firebase Auth is not configured. Missing NEXT_PUBLIC_FIREBASE_* environment variables.')
       return
     }
     try {
       const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
       await signInWithPopup(auth, provider)
     } catch (err: any) {
       console.error('Google sign-in error:', err)

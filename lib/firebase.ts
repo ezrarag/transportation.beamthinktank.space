@@ -12,8 +12,17 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-// Check if Firebase config is complete
-const isFirebaseConfigured = Object.values(firebaseConfig).every(value => value && value !== 'undefined')
+// Automatically infer messagingSenderId from appId (1:PROJECT_NUMBER:web:...) if omitted
+if (!firebaseConfig.messagingSenderId && firebaseConfig.appId?.includes(':')) {
+  firebaseConfig.messagingSenderId = firebaseConfig.appId.split(':')[1]
+}
+
+// Required keys for Firebase client authentication & database
+const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'] as const
+const isFirebaseConfigured = requiredKeys.every((key) => {
+  const value = firebaseConfig[key]
+  return Boolean(value && value !== 'undefined')
+})
 
 let app: any = null
 let db: any = null
@@ -34,9 +43,8 @@ if (isFirebaseConfigured) {
   }
 } else {
   console.warn('Firebase configuration incomplete. Please check your environment variables.')
-  console.warn('Missing variables:', Object.entries(firebaseConfig)
-    .filter(([_, value]) => !value || value === 'undefined')
-    .map(([key]) => key)
+  console.warn('Missing required variables:', requiredKeys
+    .filter((key) => !firebaseConfig[key] || firebaseConfig[key] === 'undefined')
   )
 }
 
