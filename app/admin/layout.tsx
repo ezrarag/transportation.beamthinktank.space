@@ -7,30 +7,66 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Menu, 
   X,
-  Music,
+  Truck,
   ChevronDown,
   MoreVertical,
   Loader2,
   LogOut,
+  ShieldCheck,
+  LogIn,
 } from 'lucide-react'
 import { getAdminNavGroups } from '@/lib/config/adminNav'
 import { useUserRole } from '@/lib/hooks/useUserRole'
 import { usePartnerProject } from '@/lib/hooks/useProjectAccess'
-import { signOut } from 'firebase/auth'
+import { signOut, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { ADMIN_GATEWAYS_DISABLED, isAdminEmailAllowed } from '@/lib/config/adminAccess'
 
-function AccessDeniedPage() {
+function AdminAuthScreen() {
   const router = useRouter()
   const { user } = useUserRole()
   const [signingOut, setSigningOut] = useState(false)
+  const [signingIn, setSigningIn] = useState(false)
+
+  useEffect(() => {
+    if (auth) {
+      void getRedirectResult(auth).then((res) => {
+        if (res?.user) router.refresh()
+      }).catch((err) => {
+        console.warn('Redirect auth result warning:', err)
+      })
+    }
+  }, [router])
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) return
+    setSigningIn(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
+      const res = await signInWithPopup(auth, provider)
+      if (res?.user) {
+        router.refresh()
+      }
+    } catch (error: any) {
+      console.warn('Popup auth failed or blocked (e.g. Safari / mobile), falling back to redirect:', error)
+      try {
+        const provider = new GoogleAuthProvider()
+        provider.setCustomParameters({ prompt: 'select_account' })
+        await signInWithRedirect(auth, provider)
+      } catch (redirectErr) {
+        console.error('Redirect sign in error:', redirectErr)
+      }
+    } finally {
+      setSigningIn(false)
+    }
+  }
 
   const handleSignOut = async () => {
     if (!auth) return
-    
     setSigningOut(true)
     try {
       await signOut(auth)
-      // Redirect to home page after sign out
       router.push('/')
     } catch (error) {
       console.error('Error signing out:', error)
@@ -39,47 +75,56 @@ function AccessDeniedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-orchestra-dark flex items-center justify-center p-4">
+    <div className="min-h-screen bg-transport-black text-white flex items-center justify-center p-6 font-sans">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center max-w-md w-full"
+        className="w-full max-w-md text-center space-y-6 bg-transport-steel/60 p-8 rounded-3xl border border-transport-amber/40 shadow-2xl backdrop-blur-md"
       >
-        <h1 className="text-3xl font-bold text-orchestra-gold mb-4">Access Denied</h1>
-        <p className="text-orchestra-cream/80 mb-6">
-          You need admin privileges to access this area.
-        </p>
-        
+        <div className="w-16 h-16 rounded-full bg-transport-amber/20 text-transport-amber border border-transport-amber/40 flex items-center justify-center mx-auto shadow-lg">
+          <ShieldCheck className="w-8 h-8" />
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-wide">
+            Transportation Admin
+          </h1>
+          <p className="text-xs text-white/60 leading-relaxed max-w-xs mx-auto">
+            {user ? (
+              <>Signed in as <strong className="text-transport-amber">{user.email}</strong>. To access the admin area, please sign in with an authorized admin Google account (<strong className="text-white">ezra@readyaimgo.biz</strong>).</>
+            ) : (
+              <>Sign in with your admin Google account (<strong className="text-transport-amber">ezra@readyaimgo.biz</strong>) to access the BEAM Transportation Admin Area.</>
+            )}
+          </p>
+        </div>
+
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={signingIn}
+          className="w-full py-3.5 px-6 rounded-full bg-transport-amber text-black font-mono font-bold text-sm hover:bg-amber-300 transition shadow-xl flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+        >
+          <LogIn className="w-4 h-4 text-black" />
+          <span>{signingIn ? 'Signing in...' : 'Sign In with Admin Google Account'}</span>
+        </button>
+
         {user && (
-          <div className="bg-orchestra-cream/5 backdrop-blur-sm rounded-xl border border-orchestra-gold/20 p-6 mb-6">
-            <p className="text-sm text-orchestra-cream/70 mb-2">Currently signed in as:</p>
-            <p className="text-orchestra-cream font-medium mb-4">{user.email}</p>
-            <p className="text-xs text-orchestra-cream/60 mb-4">
-              If you were just granted admin access, please sign out and sign back in to refresh your permissions.
-            </p>
-            <motion.button
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-red-500/20 hover:bg-red-500/30 disabled:opacity-50 text-red-400 font-medium rounded-lg transition-colors border border-red-500/30"
-              whileHover={!signingOut ? { scale: 1.02 } : {}}
-              whileTap={!signingOut ? { scale: 0.98 } : {}}
-            >
-              <LogOut className="h-5 w-5" />
-              <span>{signingOut ? 'Signing out...' : 'Sign Out'}</span>
-            </motion.button>
-          </div>
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="w-full py-2.5 px-4 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/30 transition flex items-center justify-center space-x-2 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>{signingOut ? 'Signing out...' : `Sign Out (${user.email})`}</span>
+          </button>
         )}
 
-        <div className="space-y-3">
+        <div className="pt-4 border-t border-white/10 flex flex-col space-y-2">
           <Link
             href="/"
-            className="inline-block px-6 py-3 bg-orchestra-gold/20 hover:bg-orchestra-gold/30 text-orchestra-gold font-medium rounded-lg transition-colors border border-orchestra-gold/30"
+            className="text-xs text-white/60 hover:text-white transition font-medium"
           >
-            Go to Home Page
+            ← Return to Transportation Homepage
           </Link>
-          <p className="text-xs text-orchestra-cream/50 mt-4">
-            Need admin access? Contact an existing admin or check the documentation.
-          </p>
         </div>
       </motion.div>
     </div>
@@ -99,23 +144,30 @@ export default function AdminLayout({
   const [signingOut, setSigningOut] = useState(false)
   const pathname = usePathname()
   const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
-  const hasAdminShellAccess = role === 'beam_admin' || role === 'partner_admin' || role === 'board'
+  const isAllowedAdmin = isAdminEmailAllowed(user?.email)
+  const effectiveRole = ADMIN_GATEWAYS_DISABLED || isAllowedAdmin ? 'beam_admin' : role
+  const hasAdminShellAccess =
+    ADMIN_GATEWAYS_DISABLED ||
+    isAllowedAdmin ||
+    role === 'beam_admin' ||
+    role === 'partner_admin' ||
+    role === 'board'
   const navGroups = useMemo(
-    () => getAdminNavGroups({ role, partnerProjectId }),
-    [partnerProjectId, role],
+    () => getAdminNavGroups({ role: effectiveRole, partnerProjectId }),
+    [effectiveRole, partnerProjectId],
   )
   const adminHomeHref = useMemo(() => {
-    if (role === 'partner_admin' && partnerProjectId) return `/admin/projects/${partnerProjectId}`
-    if (role === 'board') return '/admin/board'
+    if (effectiveRole === 'partner_admin' && partnerProjectId) return `/admin/projects/${partnerProjectId}`
+    if (effectiveRole === 'board') return '/admin/board'
     return '/admin/dashboard'
-  }, [partnerProjectId, role])
+  }, [partnerProjectId, effectiveRole])
   
   // Redirect partner admins to their project page
   useEffect(() => {
-    if (role === 'partner_admin' && partnerProjectId && pathname === '/admin/dashboard') {
+    if (effectiveRole === 'partner_admin' && partnerProjectId && pathname === '/admin/dashboard') {
       router.push(`/admin/projects/${partnerProjectId}`)
     }
-  }, [role, partnerProjectId, pathname, router])
+  }, [effectiveRole, partnerProjectId, pathname, router])
 
   const handleSignOut = async () => {
     if (!auth) return
@@ -133,14 +185,14 @@ export default function AdminLayout({
 
   if (roleLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-orchestra-dark">
-        <Loader2 className="h-12 w-12 animate-spin text-orchestra-gold" />
+      <div className="flex min-h-screen items-center justify-center bg-transport-black">
+        <Loader2 className="h-12 w-12 animate-spin text-transport-amber" />
       </div>
     )
   }
 
   if (!user || !hasAdminShellAccess) {
-    return <AccessDeniedPage />
+    return <AdminAuthScreen />
   }
 
   return (
@@ -179,8 +231,8 @@ export default function AdminLayout({
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-orchestra-gold/20">
             <Link href={adminHomeHref} className="flex items-center space-x-2">
-              <Music className="h-6 w-6 text-orchestra-gold" />
-              <span className="text-lg font-bold text-orchestra-gold">BEAM Admin</span>
+              <Truck className="h-6 w-6 text-transport-amber" />
+              <span className="text-lg font-bold text-white font-mono">BEAM Admin</span>
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -254,7 +306,7 @@ export default function AdminLayout({
               <span className="font-medium">{signingOut ? 'Signing out...' : 'Sign Out'}</span>
             </button>
             <div className="text-xs text-orchestra-cream/50 pt-2 border-t border-orchestra-gold/10">
-              BEAM Orchestra Admin Portal
+              BEAM Transportation Admin Portal
             </div>
           </div>
         </div>
