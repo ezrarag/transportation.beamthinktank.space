@@ -589,6 +589,19 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin() || viewerAdminBypassEnabled();
     }
     
+    // Transportation driver pledges & seat reservations
+    match /transport_pledges/{pledgeId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // Transportation operations and fleet telemetry
+    match /transport_telemetry/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Default deny rule for any unmatched paths
     match /{document=**} {
       allow read, write: if false;
