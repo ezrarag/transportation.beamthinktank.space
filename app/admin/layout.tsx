@@ -14,6 +14,7 @@ import {
   LogOut,
   ShieldCheck,
   LogIn,
+  AlertCircle,
 } from 'lucide-react'
 import { getAdminNavGroups } from '@/lib/config/adminNav'
 import { useUserRole } from '@/lib/hooks/useUserRole'
@@ -27,19 +28,39 @@ function AdminAuthScreen() {
   const { user } = useUserRole()
   const [signingOut, setSigningOut] = useState(false)
   const [signingIn, setSigningIn] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   useEffect(() => {
     if (auth) {
-      void getRedirectResult(auth).then((res) => {
-        if (res?.user) router.refresh()
-      }).catch((err) => {
-        console.warn('Redirect auth result warning:', err)
-      })
+      setSigningIn(true)
+      void getRedirectResult(auth)
+        .then((res) => {
+          if (res?.user) {
+            router.refresh()
+          }
+        })
+        .catch((err: any) => {
+          console.error('Redirect auth result error:', err)
+          if (err.code === 'auth/unauthorized-domain') {
+            setAuthError(`This domain (${typeof window !== 'undefined' ? window.location.hostname : 'current domain'}) is not authorized. Please add it to Firebase Console > Authentication > Settings > Authorized domains.`)
+          } else if (err.code === 'auth/operation-not-allowed') {
+            setAuthError('Google Sign-In is not enabled in Firebase Console (Authentication > Sign-in method > Google).')
+          } else if (err.code !== 'auth/redirect-cancelled-by-user') {
+            setAuthError(`Auth Redirect Error (${err.code || 'unknown'}): ${err.message}`)
+          }
+        })
+        .finally(() => {
+          setSigningIn(false)
+        })
     }
   }, [router])
 
   const handleGoogleSignIn = async () => {
-    if (!auth) return
+    if (!auth) {
+      setAuthError('Firebase Auth is not initialized. Please ensure environment variables are configured in Vercel or .env.local.')
+      return
+    }
+    setAuthError(null)
     setSigningIn(true)
     try {
       const provider = new GoogleAuthProvider()
@@ -49,16 +70,26 @@ function AdminAuthScreen() {
         router.refresh()
       }
     } catch (error: any) {
-      console.warn('Popup auth failed or blocked (e.g. Safari / mobile), falling back to redirect:', error)
+      console.warn('Popup auth failed or blocked (e.g. Safari / iPad), falling back to redirect:', error)
+      if (error.code === 'auth/unauthorized-domain') {
+        setAuthError(`This domain (${typeof window !== 'undefined' ? window.location.hostname : 'current domain'}) is not authorized in Firebase Console > Authentication > Settings > Authorized domains.`)
+        setSigningIn(false)
+        return
+      }
+      if (error.code === 'auth/operation-not-allowed') {
+        setAuthError('Google Sign-In is not enabled in Firebase Console (Authentication > Sign-in method > Google).')
+        setSigningIn(false)
+        return
+      }
       try {
         const provider = new GoogleAuthProvider()
         provider.setCustomParameters({ prompt: 'select_account' })
         await signInWithRedirect(auth, provider)
-      } catch (redirectErr) {
+      } catch (redirectErr: any) {
         console.error('Redirect sign in error:', redirectErr)
+        setAuthError(`Sign in error (${redirectErr.code || error.code || 'unknown'}): ${redirectErr.message || error.message}`)
+        setSigningIn(false)
       }
-    } finally {
-      setSigningIn(false)
     }
   }
 
@@ -97,6 +128,16 @@ function AdminAuthScreen() {
             )}
           </p>
         </div>
+
+        {authError && (
+          <div className="p-4 rounded-2xl bg-red-950/80 border border-red-500/50 text-left text-xs text-red-200 space-y-1 backdrop-blur-md">
+            <div className="flex items-center gap-2 font-bold text-red-300">
+              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <span>Authentication Notice</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-red-200/90">{authError}</p>
+          </div>
+        )}
 
         <button
           onClick={handleGoogleSignIn}

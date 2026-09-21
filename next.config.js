@@ -21,6 +21,14 @@ const nextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/__/auth/:path*',
+        destination: 'https://beam-transportation.firebaseapp.com/__/auth/:path*',
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig
