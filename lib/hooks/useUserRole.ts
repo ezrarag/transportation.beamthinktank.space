@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { User, onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase'
+import { isAdminEmailAllowed } from '@/lib/config/adminAccess'
 
 export type UserRole = 'beam_admin' | 'partner_admin' | 'board' | 'musician' | 'subscriber' | 'audience'
 
@@ -67,6 +68,13 @@ export function useUserRole(options: UseUserRoleOptions = {}): UserWithRole {
       
       if (effectiveUser) {
         try {
+          // Explicit admin email allowlist check (e.g. ezra@readyaimgo.biz)
+          if (isAdminEmailAllowed(effectiveUser.email)) {
+            setRole('beam_admin')
+            setLoading(false)
+            return
+          }
+
           // First, check custom claims (for admin roles set via Firebase Admin SDK)
           const tokenResult = await effectiveUser.getIdTokenResult().catch(() => null)
           const claims = tokenResult?.claims || {}
@@ -138,6 +146,7 @@ export function useRequireRole(requiredRole: UserRole, options: UseUserRoleOptio
   
   const hasAccess = !loading && (
     (allowAdminBypass && adminAuthBypassEnabled) ||
+    isAdminEmailAllowed(user?.email) ||
     Boolean(user && role === requiredRole)
   )
   
