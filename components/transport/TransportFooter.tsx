@@ -54,6 +54,16 @@ export default function TransportFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/dashboard" className="text-transport-amber hover:text-white font-semibold transition-colors">
+                  Truth Dashboard (Leesburg, FL)
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard/report" className="text-red-400 hover:text-white font-semibold transition-colors">
+                  Report Transit Incident
+                </Link>
+              </li>
+              <li>
                 <Link href="/profile" className="hover:text-emerald-400 transition-colors">
                   Operator Profile & Hours
                 </Link>

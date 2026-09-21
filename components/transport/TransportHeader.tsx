@@ -14,11 +14,12 @@ const PORTAL_TRACKS = [
 ]
 
 const NAV_ITEMS = [
+  { label: 'Truth Dashboard', href: '/dashboard', isHighlight: true },
   { label: 'Profile', href: '/profile' },
   { label: 'Fleet', href: '/fleet' },
   { label: 'Viewer', href: resolvePortalPath('/viewer', 'transport') },
   { label: 'Cohort', href: resolvePortalPath('/cohort', 'transport') },
-  { label: 'Sponsor Telemetry', href: '/sponsor', isHighlight: true },
+  { label: 'Sponsor Telemetry', href: '/sponsor' },
   { label: 'Admin', href: resolvePortalPath('/admin', 'transport') },
 ]
 
