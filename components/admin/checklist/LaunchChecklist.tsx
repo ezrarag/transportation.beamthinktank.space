@@ -132,44 +132,60 @@ export default function LaunchChecklist() {
   return (
     <div className="space-y-8 font-sans">
       {/* Top Stat Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
-          <span className="text-xs font-mono text-white/50 uppercase tracking-wider">Total Actions</span>
-          <div className="mt-2 text-3xl font-black text-white font-mono">{totalCount}</div>
-          <span className="text-[11px] text-white/40 mt-1">Across 8 operational tracks</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+          <span className="text-[10px] sm:text-xs font-mono text-white/50 uppercase tracking-wider truncate">
+            Total Actions
+          </span>
+          <div className="my-1 text-2xl sm:text-4xl font-extrabold text-white font-sans tracking-tight">
+            {totalCount}
+          </div>
+          <span className="text-[10px] sm:text-[11px] text-white/40 truncate">8 operational tracks</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
-          <span className="text-xs font-mono text-transport-signal uppercase tracking-wider">Completed</span>
-          <div className="mt-2 text-3xl font-black text-transport-signal font-mono">{doneCount}</div>
-          <span className="text-[11px] text-white/40 mt-1">{percentComplete}% overall readiness</span>
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+          <span className="text-[10px] sm:text-xs font-mono text-transport-signal uppercase tracking-wider truncate">
+            Completed
+          </span>
+          <div className="my-1 text-2xl sm:text-4xl font-extrabold text-transport-signal font-sans tracking-tight">
+            {doneCount}
+          </div>
+          <span className="text-[10px] sm:text-[11px] text-white/40 truncate">{percentComplete}% overall readiness</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
-          <span className="text-xs font-mono text-transport-amber uppercase tracking-wider">In Progress</span>
-          <div className="mt-2 text-3xl font-black text-transport-amber font-mono">{inProgressCount}</div>
-          <span className="text-[11px] text-white/40 mt-1">Active priority execution</span>
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+          <span className="text-[10px] sm:text-xs font-mono text-transport-amber uppercase tracking-wider truncate">
+            In Progress
+          </span>
+          <div className="my-1 text-2xl sm:text-4xl font-extrabold text-transport-amber font-sans tracking-tight">
+            {inProgressCount}
+          </div>
+          <span className="text-[10px] sm:text-[11px] text-white/40 truncate">Active execution</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
-          <span className="text-xs font-mono text-white/40 uppercase tracking-wider">Pending / Queued</span>
-          <div className="mt-2 text-3xl font-black text-white/70 font-mono">{pendingCount}</div>
-          <span className="text-[11px] text-white/40 mt-1">Scheduled for weeks 2–4</span>
+        <div className="p-3.5 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+          <span className="text-[10px] sm:text-xs font-mono text-white/40 uppercase tracking-wider truncate">
+            Pending
+          </span>
+          <div className="my-1 text-2xl sm:text-4xl font-extrabold text-white/80 font-sans tracking-tight">
+            {pendingCount}
+          </div>
+          <span className="text-[10px] sm:text-[11px] text-white/40 truncate">Weeks 2–4 queue</span>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
-        <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-white/80 font-bold uppercase tracking-wider flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-transport-signal" />
+      <div className="p-4 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2.5 sm:space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
+          <span className="text-white/80 font-bold uppercase tracking-wider flex items-center gap-1.5 font-mono text-[10px] sm:text-xs">
+            <Sparkles className="w-3.5 h-3.5 text-transport-signal flex-shrink-0" />
             Launch Readiness Progress
           </span>
-          <span className="text-transport-signal font-bold text-sm">
+          <span className="text-transport-signal font-bold font-mono text-xs sm:text-sm">
             {doneCount} of {totalCount} Items Done ({percentComplete}%)
           </span>
         </div>
-        <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden p-0.5">
+        <div className="h-2 sm:h-2.5 w-full bg-white/10 rounded-full overflow-hidden p-0.5">
           <motion.div
             className="h-full bg-gradient-to-r from-transport-amber via-emerald-400 to-transport-signal rounded-full"
             initial={{ width: 0 }}
@@ -180,12 +196,12 @@ export default function LaunchChecklist() {
       </div>
 
       {/* Control Bar: Categories, Filters, Search */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 pt-0.5 no-scrollbar touch-pan-x -mx-1 px-1">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
               selectedCategory === 'all'
                 ? 'bg-transport-amber text-black font-bold shadow-lg shadow-transport-amber/20'
                 : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10'
@@ -202,7 +218,7 @@ export default function LaunchChecklist() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
                   isSelected
                     ? 'bg-white text-black font-bold shadow-lg'
                     : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10'
@@ -217,30 +233,30 @@ export default function LaunchChecklist() {
         </div>
 
         {/* Filters and Search Row */}
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search 64 checklist items..."
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-transport-amber"
+              className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-transport-amber"
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 w-full sm:w-auto">
             {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e: any) => setStatusFilter(e.target.value)}
               aria-label="Filter by status"
-              className="bg-[#12141A] border border-white/15 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-transport-amber"
+              className="bg-[#12141A] border border-white/15 text-white text-[11px] sm:text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-transport-amber truncate"
             >
               <option value="all">Status: All</option>
-              <option value="done">Completed Only</option>
-              <option value="in_progress">In Progress Only</option>
-              <option value="pending">Pending Only</option>
+              <option value="done">Completed</option>
+              <option value="in_progress">In Progress</option>
+              <option value="pending">Queued</option>
             </select>
 
             {/* Sort Filter */}
@@ -248,7 +264,7 @@ export default function LaunchChecklist() {
               value={sortBy}
               onChange={(e: any) => setSortBy(e.target.value)}
               aria-label="Sort checklist items"
-              className="bg-[#12141A] border border-white/15 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-transport-amber"
+              className="bg-[#12141A] border border-white/15 text-white text-[11px] sm:text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-transport-amber truncate"
             >
               <option value="category">Sort: Category</option>
               <option value="priority">Sort: Priority</option>
@@ -259,9 +275,9 @@ export default function LaunchChecklist() {
             <button
               onClick={resetToDefault}
               title="Reset to default"
-              className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white transition"
+              className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white transition flex items-center justify-center flex-shrink-0"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -281,7 +297,7 @@ export default function LaunchChecklist() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                className={`p-3.5 sm:p-5 rounded-2xl border transition-all ${
                   item.status === 'done'
                     ? 'bg-emerald-950/10 border-emerald-500/20'
                     : item.status === 'in_progress'
@@ -291,26 +307,26 @@ export default function LaunchChecklist() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   {/* Left: Icon & Content */}
-                  <div className="flex items-start space-x-3.5 flex-1">
+                  <div className="flex items-start space-x-3 flex-1 min-w-0">
                     <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 border border-white/10"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 border border-white/10"
                       style={{ backgroundColor: `${catMeta?.color || '#3B82F6'}15` }}
                     >
-                      {Icon && <Icon className="w-4 h-4" style={{ color: catMeta?.color || '#3B82F6' }} />}
+                      {Icon && <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: catMeta?.color || '#3B82F6' }} />}
                     </div>
 
-                    <div className="space-y-1 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-[9px] sm:text-[10px] font-mono text-white/50 uppercase tracking-wider">
                           {catMeta?.name}
                         </span>
                         {item.targetPhase && (
-                          <span className="text-[10px] font-mono text-transport-amber/90 bg-transport-amber/10 border border-transport-amber/20 px-2 py-0.5 rounded-md">
+                          <span className="text-[9px] sm:text-[10px] font-mono text-transport-amber/90 bg-transport-amber/10 border border-transport-amber/20 px-1.5 py-0.5 rounded-md">
                             {item.targetPhase}
                           </span>
                         )}
                         <span
-                          className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded-md font-bold ${
+                          className={`text-[8px] sm:text-[9px] font-mono uppercase px-1.5 py-0.5 rounded-md font-bold ${
                             item.priority === 'critical'
                               ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                               : item.priority === 'high'
@@ -323,55 +339,55 @@ export default function LaunchChecklist() {
                       </div>
 
                       <h3
-                        className={`text-sm font-bold transition-all ${
+                        className={`text-xs sm:text-sm font-bold transition-all ${
                           item.status === 'done' ? 'line-through text-white/60' : 'text-white'
                         }`}
                       >
                         {item.title}
                       </h3>
 
-                      <p className="text-xs text-white/60 leading-relaxed max-w-3xl">
+                      <p className="text-[11px] sm:text-xs text-white/65 leading-relaxed">
                         {item.description}
                       </p>
                     </div>
                   </div>
 
-                  {/* Right: Status Toggles */}
-                  <div className="flex items-center gap-1.5 self-end sm:self-start bg-black/40 p-1 rounded-xl border border-white/10">
+                  {/* Right / Bottom: Status Toggles */}
+                  <div className="grid grid-cols-3 sm:flex items-center gap-1 w-full sm:w-auto bg-black/40 p-1 rounded-xl border border-white/10 mt-1 sm:mt-0 flex-shrink-0">
                     <button
                       onClick={() => updateItemStatus(item.id, 'done')}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                      className={`py-1.5 sm:py-1 px-2 sm:px-2.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition ${
                         item.status === 'done'
-                          ? 'bg-emerald-500 text-black font-bold'
+                          ? 'bg-emerald-500 text-black font-bold shadow-sm'
                           : 'text-white/50 hover:text-emerald-400 hover:bg-white/5'
                       }`}
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Done</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>Done</span>
                     </button>
 
                     <button
                       onClick={() => updateItemStatus(item.id, 'in_progress')}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                      className={`py-1.5 sm:py-1 px-2 sm:px-2.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition ${
                         item.status === 'in_progress'
-                          ? 'bg-amber-400 text-black font-bold'
+                          ? 'bg-amber-400 text-black font-bold shadow-sm'
                           : 'text-white/50 hover:text-amber-300 hover:bg-white/5'
                       }`}
                     >
-                      <Clock className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Active</span>
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>Active</span>
                     </button>
 
                     <button
                       onClick={() => updateItemStatus(item.id, 'pending')}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
+                      className={`py-1.5 sm:py-1 px-2 sm:px-2.5 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition ${
                         item.status === 'pending'
                           ? 'bg-white/20 text-white font-bold'
                           : 'text-white/40 hover:text-white hover:bg-white/5'
                       }`}
                     >
-                      <CircleDashed className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Queued</span>
+                      <CircleDashed className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>Queued</span>
                     </button>
                   </div>
                 </div>
