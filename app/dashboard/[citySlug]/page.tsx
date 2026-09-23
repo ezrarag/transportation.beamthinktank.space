@@ -22,6 +22,9 @@ import FundingBreakdown from '@/components/dashboard/FundingBreakdown'
 import ComparisonTable from '@/components/dashboard/ComparisonTable'
 import GapScoreGauge from '@/components/dashboard/GapScoreGauge'
 import AlternativeCostComparison from '@/components/dashboard/AlternativeCostComparison'
+import IncidentForm from '@/components/dashboard/IncidentForm'
+import AppleMessagesIncidentTrigger from '@/components/dashboard/AppleMessagesIncidentTrigger'
+import SourceVerificationModal from '@/components/dashboard/SourceVerificationModal'
 import { getCityMetadata, subscribeIncidentCount } from '@/lib/services/truthDashboard'
 import type { CityTruthMetadata } from '@/lib/types/truthDashboard'
 
@@ -30,7 +33,7 @@ export default function CityTruthDashboardPage() {
   const citySlug = (params?.citySlug as string) || 'leesburg-fl'
 
   const [metadata, setMetadata] = useState<CityTruthMetadata | null>(null)
-  const [incidentCount, setIncidentCount] = useState<number>(14)
+  const [incidentCount, setIncidentCount] = useState<number>(0)
 
   useEffect(() => {
     // Load or seed metadata
@@ -81,27 +84,47 @@ export default function CityTruthDashboardPage() {
             </div>
 
             {/* REAL-TIME INCIDENT COUNTER BADGE */}
-            <div className="rounded-2xl border-2 border-red-500/40 bg-red-950/30 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 max-w-xl">
-              <div>
-                <div className="text-xs font-mono text-red-400 font-bold uppercase tracking-wider">
-                  Live Community Incident Log
+            {incidentCount > 0 ? (
+              <div className="rounded-2xl border-2 border-red-500/40 bg-red-950/30 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 max-w-xl">
+                <div>
+                  <div className="text-xs font-mono text-red-400 font-bold uppercase tracking-wider">
+                    Live Community Incident Log
+                  </div>
+                  <div className="text-sm sm:text-base font-bold text-white mt-0.5">
+                    <span className="text-xl sm:text-2xl font-mono text-red-400 font-black mr-1.5">
+                      {incidentCount}
+                    </span>
+                    {incidentCount === 1 ? 'community member has' : 'community members have'} documented transit gaps in Leesburg
+                  </div>
                 </div>
-                <div className="text-sm sm:text-base font-bold text-white mt-0.5">
-                  <span className="text-xl sm:text-2xl font-mono text-red-400 font-black mr-1.5">
-                    {incidentCount}
-                  </span>
-                  community members have documented transit gaps in Leesburg
-                </div>
-              </div>
 
-              <Link
-                href="/dashboard/report"
-                className="shrink-0 px-5 py-2.5 rounded-full bg-red-500 hover:bg-red-400 text-white font-mono text-xs font-bold uppercase tracking-wider transition inline-flex items-center gap-1.5 shadow-lg shadow-red-500/20"
-              >
-                <span>Add Your Account</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
+                <a
+                  href="#section-intake"
+                  className="shrink-0 px-5 py-2.5 rounded-full bg-red-500 hover:bg-red-400 text-white font-mono text-xs font-bold uppercase tracking-wider transition inline-flex items-center gap-1.5 shadow-lg shadow-red-500/20"
+                >
+                  <span>Add Your Account</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 max-w-xl">
+                <div>
+                  <div className="text-xs font-mono text-white/50 font-bold uppercase tracking-wider">
+                    Community Evidence Ledger
+                  </div>
+                  <div className="text-sm font-semibold text-white/80 mt-0.5">
+                    Document transit gaps, missed shifts, or route cutoffs in Leesburg.
+                  </div>
+                </div>
+                <a
+                  href="#section-intake"
+                  className="shrink-0 px-5 py-2.5 rounded-full bg-red-500 hover:bg-red-400 text-white font-mono text-xs font-bold uppercase tracking-wider transition inline-flex items-center gap-1.5 shadow-lg shadow-red-500/20"
+                >
+                  <span>Log First Incident</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            )}
           </div>
         </section>
 
@@ -125,35 +148,37 @@ export default function CityTruthDashboardPage() {
           <GapScoreGauge />
         </section>
 
-        {/* COMMUNITY INCIDENT SUBMISSION CTA CARD */}
-        <section className="rounded-3xl border-2 border-red-500 bg-gradient-to-br from-red-950/40 via-transport-steel to-black p-8 sm:p-12 text-center space-y-6 shadow-2xl">
-          <div className="max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-mono font-bold uppercase tracking-[0.25em] text-red-400">
-              Community Evidentiary Record
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-white">
-              Have You Experienced a Transit Failure in Lake County?
-            </h2>
-            <p className="text-sm text-white/80 leading-relaxed font-sans">
-              Missing work, hospital visits, or child drop-offs because LakeXpress has zero weekend routes or stops at 8 PM is not your fault. It is a documented systemic failure. Enter your account to be cited in official city hall hearings.
-            </p>
-          </div>
-
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/dashboard/report"
-              className="px-9 py-4 rounded-full bg-red-500 hover:bg-red-400 text-white font-extrabold text-sm uppercase tracking-wider transition shadow-2xl shadow-red-500/30 inline-flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              <span>Submit Your Incident Record</span>
-            </Link>
+        {/* SECTION: PUBLIC EVIDENCE INTAKE (STEP SEQUENCED FORM + APPLE MESSAGES) */}
+        <section id="section-intake" className="scroll-mt-24 space-y-8">
+          <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-xs font-mono font-bold uppercase tracking-wider text-red-400">
+                <FileText className="h-3.5 w-3.5" />
+                <span>Public Evidence Intake</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                Document a Transit Failure in Lake County
+              </h2>
+              <p className="text-sm sm:text-base text-white/70 max-w-2xl font-sans">
+                Missing work, medical visits, or childcare because LakeXpress has zero weekend routes or stops at 8 PM is a documented municipal failure. Your submission feeds directly into the public hearing dossier.
+              </p>
+            </div>
 
             <Link
               href="/admin/dashboard/leesburg-fl"
-              className="px-6 py-4 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 text-white font-mono text-xs font-bold uppercase tracking-wider transition"
+              className="shrink-0 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-mono text-xs font-bold uppercase tracking-wider transition inline-flex items-center gap-1.5"
             >
-              Admin Hearing Dossier →
+              <span>Admin Hearing Dossier</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
+          </div>
+
+          {/* Inbound Apple Messages / SMS Quick Trigger Option */}
+          <AppleMessagesIncidentTrigger citySlug={citySlug} cityName={cityName} variant="card" />
+
+          {/* Embedded Step-Sequenced Intake Form */}
+          <div className="pt-2">
+            <IncidentForm embedMode={true} citySlug={citySlug} />
           </div>
         </section>
 
@@ -161,6 +186,9 @@ export default function CityTruthDashboardPage() {
         <section id="section-alternative" className="scroll-mt-24">
           <AlternativeCostComparison />
         </section>
+
+        {/* IN-FRAME SOURCE VERIFICATION EMBED POPUP */}
+        <SourceVerificationModal />
 
       </main>
 

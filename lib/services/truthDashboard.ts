@@ -108,7 +108,7 @@ export function subscribeIncidentCount(
   callback: (count: number) => void
 ): () => void {
   if (!db) {
-    callback(28) // baseline mock count for display if offline
+    callback(0)
     return () => {}
   }
 
@@ -116,15 +116,15 @@ export function subscribeIncidentCount(
     const colRef = collection(db, 'transport', 'dashboard', 'cities', citySlug, 'incidents')
     const q = query(colRef, where('deleted', '!=', true))
     return onSnapshot(q, (snapshot) => {
-      // Return total actual documents plus baseline documented community records
-      callback(Math.max(snapshot.size, 14))
+      // Return true actual document count
+      callback(snapshot.size)
     }, (err) => {
       console.warn('Error subscribing to incident count:', err)
-      callback(14)
+      callback(0)
     })
   } catch (err) {
     console.warn('Failed to setup snapshot listener:', err)
-    callback(14)
+    callback(0)
     return () => {}
   }
 }
