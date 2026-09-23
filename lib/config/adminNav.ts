@@ -44,15 +44,15 @@ const adminNavGroups: AdminNavGroup[] = [
     items: [
       {
         key: 'dashboard',
-        label: 'Dashboard',
-        href: '/admin/dashboard',
+        label: 'Admin Hub',
+        href: '/admin',
         icon: LayoutDashboard,
         enabled: true,
         roles: ['beam_admin', 'partner_admin'],
         resolveHref: ({ role, partnerProjectId }) =>
           role === 'partner_admin' && partnerProjectId
             ? `/admin/projects/${partnerProjectId}`
-            : '/admin/dashboard',
+            : '/admin',
       },
     ],
   },

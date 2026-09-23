@@ -13,7 +13,8 @@ import {
   ArrowRight, 
   Building2, 
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  Bus
 } from 'lucide-react'
 import TransportHeader from '@/components/transport/TransportHeader'
 import TransportFooter from '@/components/transport/TransportFooter'
@@ -67,9 +68,30 @@ export default function CityTruthDashboardPage() {
               <span>Municipal Transit Truth Audit</span>
             </div>
 
-            <div className="text-xs font-mono text-white/50 flex items-center gap-4">
+            <div className="text-xs font-mono text-white/50 flex flex-wrap items-center gap-3 sm:gap-4">
               <span>NTD Agency ID: <strong className="text-white">40158 (LakeXpress)</strong></span>
+              <span className="hidden sm:inline text-white/20">·</span>
               <span>Census FIPS: <strong className="text-white">12069</strong></span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(
+                      new CustomEvent('beam:open-verify-modal', {
+                        detail: {
+                          name: 'LakeXpress 9 Fixed Routes & Official Schedules',
+                          url: 'https://ridelakexpress.com/schedules',
+                        },
+                      })
+                    )
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-transport-signal/15 hover:bg-transport-signal/25 border border-transport-signal/30 text-transport-signal text-xs font-mono font-bold transition cursor-pointer"
+                title="View official LakeXpress route schedules in embedded viewer"
+              >
+                <Bus className="h-3.5 w-3.5" />
+                <span>View 9 Bus Routes</span>
+              </button>
             </div>
           </div>
 

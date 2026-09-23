@@ -52,20 +52,32 @@ export default function BoardDashboard() {
         setLoadingStats(true)
         setError(null)
 
-        // Fetch project musicians
-        const projectMusiciansQuery = query(
-          collection(db, 'projectMusicians'),
-          where('projectId', '==', 'black-diaspora-symphony')
-        )
-        const musiciansSnapshot = await getDocs(projectMusiciansQuery)
-        const musicians = musiciansSnapshot.docs.map(doc => doc.data())
+        // Fetch project musicians safely
+        let musicians: any[] = []
+        try {
+          if (db) {
+            const projectMusiciansQuery = query(
+              collection(db, 'projectMusicians'),
+              where('projectId', '==', 'black-diaspora-symphony')
+            )
+            const musiciansSnapshot = await getDocs(projectMusiciansQuery)
+            musicians = musiciansSnapshot.docs.map(doc => doc.data())
+          }
+        } catch (e) {
+          console.warn('projectMusicians collection not available:', e)
+        }
 
-        // Fetch attendance records
-        const attendanceQuery = query(
-          collection(db, 'attendance')
-        )
-        const attendanceSnapshot = await getDocs(attendanceQuery)
-        const attendanceRecords = attendanceSnapshot.docs.map(doc => doc.data())
+        // Fetch attendance records safely
+        let attendanceRecords: any[] = []
+        try {
+          if (db) {
+            const attendanceQuery = query(collection(db, 'attendance'))
+            const attendanceSnapshot = await getDocs(attendanceQuery)
+            attendanceRecords = attendanceSnapshot.docs.map(doc => doc.data())
+          }
+        } catch (e) {
+          console.warn('attendance collection not available:', e)
+        }
 
         // Calculate stats
         const totalRegistered = musicians.length

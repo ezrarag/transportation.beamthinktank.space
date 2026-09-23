@@ -35,8 +35,8 @@ export default function SupplyCard() {
             </p>
           </div>
           <SourceCitation
-            name="ridelakexpress.com (2025 verified)"
-            url="https://ridelakexpress.com"
+            name="LakeXpress 9 Fixed Routes (ridelakexpress.com)"
+            url="https://ridelakexpress.com/schedules"
           />
         </div>
 

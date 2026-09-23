@@ -114,23 +114,23 @@ export default function UserMenu() {
         <>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center space-x-2 px-3 py-2 bg-orchestra-gold/20 hover:bg-orchestra-gold/30 rounded-lg transition-colors border border-orchestra-gold/30"
+            className="flex items-center space-x-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/15 text-white"
           >
             {user.photoURL ? (
               <img
                 src={user.photoURL}
                 alt={user.displayName || 'User'}
-                className="h-8 w-8 rounded-full"
+                className="h-7 w-7 rounded-full object-cover border border-white/20"
               />
             ) : (
-              <div className="h-8 w-8 rounded-full bg-orchestra-gold/30 flex items-center justify-center">
-                <User className="h-4 w-4 text-orchestra-cream" />
+              <div className="h-7 w-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                <User className="h-4 w-4" />
               </div>
             )}
-            <span className="hidden sm:inline text-orchestra-cream text-sm font-medium max-w-[120px] truncate">
+            <span className="hidden sm:inline text-white text-xs font-medium max-w-[120px] truncate">
               {user.displayName || user.email}
             </span>
-            <ChevronDown className={`h-4 w-4 text-orchestra-cream transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-3.5 w-3.5 text-white/60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </button>
 
           <AnimatePresence>
@@ -150,31 +150,31 @@ export default function UserMenu() {
                   initial={{ opacity: 0, y: -10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="absolute right-0 mt-2 w-64 bg-orchestra-dark/95 backdrop-blur-md rounded-xl border border-orchestra-gold/30 shadow-xl z-50 overflow-hidden"
+                  className="absolute right-0 mt-2 w-64 bg-[#0d1017]/95 backdrop-blur-xl rounded-2xl border border-white/15 shadow-2xl z-50 overflow-hidden text-white"
                 >
-                  <div className="p-4 border-b border-orchestra-gold/20">
+                  <div className="p-4 border-b border-white/10 bg-white/[0.02]">
                     <div className="flex items-center space-x-3">
                       {user.photoURL ? (
                         <img
                           src={user.photoURL}
                           alt={user.displayName || 'User'}
-                          className="h-12 w-12 rounded-full"
+                          className="h-10 w-10 rounded-full border border-white/20 object-cover"
                         />
                       ) : (
-                        <div className="h-12 w-12 rounded-full bg-orchestra-gold/30 flex items-center justify-center">
-                          <User className="h-6 w-6 text-orchestra-cream" />
+                        <div className="h-10 w-10 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                          <User className="h-5 w-5" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-orchestra-cream font-medium truncate">
+                        <p className="text-white text-sm font-semibold truncate">
                           {user.displayName || 'User'}
                         </p>
-                        <p className="text-sm text-orchestra-cream/70 truncate">
+                        <p className="text-xs text-white/50 truncate">
                           {user.email}
                         </p>
                         {role && (
-                          <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-orchestra-gold/20 text-orchestra-gold rounded-full">
-                            {role === 'beam_admin' ? 'Admin' : role.charAt(0).toUpperCase() + role.slice(1)}
+                          <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-mono uppercase bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-full font-bold">
+                            {role === 'beam_admin' ? 'BEAM Admin' : role.charAt(0).toUpperCase() + role.slice(1)}
                           </span>
                         )}
                       </div>
@@ -186,62 +186,37 @@ export default function UserMenu() {
                     <Link
                       href="/profile"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-orchestra-gold/10 text-orchestra-cream transition-colors group"
+                      className="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl hover:bg-white/10 text-white/80 hover:text-white transition-colors group text-xs font-semibold"
                     >
-                      <User className="h-5 w-5 text-orchestra-gold group-hover:scale-110 transition-transform" />
-                      <span className="font-medium">My Profile</span>
+                      <User className="h-4 w-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                      <span>My Profile</span>
                     </Link>
 
-                    {/* Admin Dashboard Link - Always visible, but only accessible if admin */}
+                    {/* Admin Hub Link */}
                     <Link
-                      href="/admin/dashboard"
-                      onClick={(e) => {
-                        if (role !== 'beam_admin' && role !== 'partner_admin') {
-                          e.preventDefault()
-                          alert('Admin access required. Please contact an administrator.')
-                        } else {
-                          setIsOpen(false)
-                        }
-                      }}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors group ${
-                        role === 'beam_admin' || role === 'partner_admin'
-                          ? 'hover:bg-orchestra-gold/10 text-orchestra-cream'
-                          : 'hover:bg-gray-500/10 text-orchestra-cream/60 cursor-not-allowed opacity-50'
-                      }`}
+                      href="/admin"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl hover:bg-white/10 text-white/80 hover:text-white transition-colors group text-xs font-semibold"
                     >
-                      <LayoutDashboard className={`h-5 w-5 group-hover:scale-110 transition-transform ${
-                        role === 'beam_admin' || role === 'partner_admin' ? 'text-orchestra-gold' : 'text-gray-400'
-                      }`} />
-                      <span className="font-medium">
-                        Admin Dashboard
-                        {role !== 'beam_admin' && role !== 'partner_admin' && (
-                          <span className="ml-2 text-xs text-gray-400">(Admin Only)</span>
-                        )}
-                      </span>
+                      <LayoutDashboard className="h-4 w-4 text-transport-amber group-hover:scale-110 transition-transform" />
+                      <div className="flex items-center justify-between w-full">
+                        <span>Admin Hub</span>
+                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-transport-amber/15 text-transport-amber border border-transport-amber/30">
+                          Exec
+                        </span>
+                      </div>
                     </Link>
-
-                    {/* Board Dashboard Link - Visible to board members and admins */}
-                    {(role === 'board' || role === 'beam_admin' || role === 'partner_admin') && (
-                      <Link
-                        href="/admin/board"
-                        onClick={() => setIsOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-orchestra-gold/10 text-orchestra-cream transition-colors group"
-                      >
-                        <LayoutDashboard className="h-5 w-5 text-orchestra-gold group-hover:scale-110 transition-transform" />
-                        <span className="font-medium">Board Dashboard</span>
-                      </Link>
-                    )}
 
                     {/* Divider */}
-                    <div className="border-t border-orchestra-gold/20 my-1" />
+                    <div className="border-t border-white/10 my-1" />
 
                     {/* Sign Out */}
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-500/10 text-orchestra-cream transition-colors group"
+                      className="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl hover:bg-red-500/15 text-red-300 hover:text-red-200 transition-colors group text-xs font-semibold cursor-pointer"
                     >
-                      <LogOut className="h-5 w-5 text-red-400 group-hover:scale-110 transition-transform" />
-                      <span className="font-medium">Sign Out</span>
+                      <LogOut className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
+                      <span>Sign Out</span>
                     </button>
                   </div>
 

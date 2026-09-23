@@ -125,7 +125,7 @@ export default function TransportFooter() {
         <div className="border-t border-white/10 mt-10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p>© {new Date().getFullYear()} BEAM Transportation Infrastructure. All rights reserved.</p>
           {isAdmin && (
-            <Link href="/admin/dashboard" className="text-emerald-400/70 hover:text-emerald-400 font-mono">
+            <Link href="/admin" className="text-emerald-400/70 hover:text-emerald-400 font-mono">
               [ Admin Mode Active ]
             </Link>
           )}

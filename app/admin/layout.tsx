@@ -199,13 +199,13 @@ export default function AdminLayout({
   )
   const adminHomeHref = useMemo(() => {
     if (effectiveRole === 'partner_admin' && partnerProjectId) return `/admin/projects/${partnerProjectId}`
-    if (effectiveRole === 'board') return '/admin/board'
-    return '/admin/dashboard'
+    if (effectiveRole === 'board') return '/admin'
+    return '/admin'
   }, [partnerProjectId, effectiveRole])
   
   // Redirect partner admins to their project page
   useEffect(() => {
-    if (effectiveRole === 'partner_admin' && partnerProjectId && pathname === '/admin/dashboard') {
+    if (effectiveRole === 'partner_admin' && partnerProjectId && pathname === '/admin') {
       router.push(`/admin/projects/${partnerProjectId}`)
     }
   }, [effectiveRole, partnerProjectId, pathname, router])

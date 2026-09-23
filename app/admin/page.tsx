@@ -55,6 +55,16 @@ const PRIMARY_HUBS: AdminTile[] = [
     featured: true,
     status: 'live',
   },
+  {
+    title: 'Hearing Evidence Dossier',
+    href: '/admin/dashboard/leesburg-fl',
+    description:
+      'Review inbound community incident reports, verify submissions, and generate citation dossiers for Lake County BOCC transit hearings.',
+    badge: 'EVIDENTIARY DOSSIER',
+    icon: FileText,
+    featured: true,
+    status: 'live',
+  },
 ]
 
 const SYSTEM_SECTIONS: AdminTile[] = [
@@ -109,13 +119,22 @@ export default function AdminPage() {
 
       <main className="mx-auto max-w-7xl space-y-10 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         {/* Header Hero Section */}
-        <section className="rounded-[28px] border border-white/10 bg-gradient-to-br from-[#171a20] to-[#0b0d11] p-6 sm:p-10 shadow-2xl space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.24em] text-transport-signal font-bold">
-              BEAM Transport Admin
-            </span>
-            <span className="text-white/30">·</span>
-            <span className="font-mono text-[10px] uppercase text-white/50">Executive Control Hub</span>
+        <section className="rounded-[28px] border border-white/10 bg-gradient-to-br from-[#171a20] to-[#0b0d11] p-6 sm:p-10 shadow-2xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.24em] text-transport-signal font-bold">
+                BEAM Transport Admin
+              </span>
+              <span className="text-white/30">·</span>
+              <span className="font-mono text-[10px] uppercase text-white/50">Executive Control Hub</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>System Operational</span>
+              </span>
+            </div>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight font-display leading-[1.05]">
@@ -123,11 +142,44 @@ export default function AdminPage() {
           </h1>
 
           <p className="max-w-3xl text-xs sm:text-sm sm:leading-relaxed text-white/70">
-            Central dashboard for the BEAM Transportation namespace: live operational roadmaps, 64-item launch execution, federal transit gap telemetry, and municipal cohort administration.
+            Consolidated command hub for BEAM Transportation: live operational roadmaps, 64-item launch execution, federal transit gap telemetry, hearing evidence dossiers, and municipal cohort administration.
           </p>
+
+          {/* Quick Macro Telemetry Strip (Consolidated from /admin/dashboard) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-white/10">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-white/50">Active Corridors</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-white mt-0.5">Lake County</div>
+              <div className="text-[11px] text-emerald-400 font-mono mt-0.5">Leesburg Priority 01</div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-white/50">Launch Checklist</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-transport-amber mt-0.5">64 Items</div>
+              <div className="text-[11px] text-white/60 font-mono mt-0.5">8 Tracks Active</div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gap Score Deficit</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-red-400 mt-0.5">17% Grade</div>
+              <div className="text-[11px] text-red-400/80 font-mono mt-0.5">Severe Headway Gap</div>
+            </div>
+
+            <Link 
+              href="/admin/dashboard/leesburg-fl"
+              className="p-3.5 rounded-2xl bg-red-950/20 hover:bg-red-950/40 border border-red-500/30 transition group block"
+            >
+              <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-red-400">
+                <span>Hearing Dossier</span>
+                <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-white mt-0.5">Evidence Log</div>
+              <div className="text-[11px] text-white/60 font-mono mt-0.5">Inspect Submissions →</div>
+            </Link>
+          </div>
         </section>
 
-        {/* Highlighted Core Operational Hubs (Timeline, Checklist, Dashboard) */}
+        {/* Highlighted Core Operational Hubs (Timeline, Checklist, Dashboard, Dossier) */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -136,10 +188,10 @@ export default function AdminPage() {
                 Operational Command Hubs
               </h2>
             </div>
-            <span className="text-[11px] font-mono text-white/40 hidden sm:inline">Active Tools</span>
+            <span className="text-[11px] font-mono text-white/40 hidden sm:inline">Active Workspaces</span>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {PRIMARY_HUBS.map((hub) => {
               const Icon = hub.icon
               return (
