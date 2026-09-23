@@ -1,4 +1,3 @@
-import TransportHeader from '@/components/transport/TransportHeader'
 import LaunchChecklist from '@/components/admin/checklist/LaunchChecklist'
 
 export const metadata = {
@@ -8,10 +7,7 @@ export const metadata = {
 
 export default function LaunchChecklistPage() {
   return (
-    <div className="min-h-screen bg-transport-black text-white selection:bg-transport-amber selection:text-black">
-      <TransportHeader />
-
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-10">
+    <div className="space-y-8 p-4 sm:p-6 lg:p-8">
         {/* Page Header Banner */}
         <section className="rounded-[28px] border border-white/10 bg-gradient-to-br from-[#171a20] to-[#0b0d11] p-6 sm:p-10 shadow-2xl space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -36,7 +32,6 @@ export default function LaunchChecklistPage() {
         <section className="rounded-[28px] border border-white/10 bg-[#0A0D14]/80 p-6 sm:p-10 shadow-2xl backdrop-blur-xl">
           <LaunchChecklist />
         </section>
-      </main>
     </div>
   )
 }

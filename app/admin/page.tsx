@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import TransportHeader from '@/components/transport/TransportHeader'
 import {
   Calendar,
   CheckSquare,
@@ -12,6 +11,9 @@ import {
   FileText,
   ArrowUpRight,
   Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  TrendingUp,
 } from 'lucide-react'
 
 interface AdminTile {
@@ -71,14 +73,14 @@ const SYSTEM_SECTIONS: AdminTile[] = [
   {
     title: 'Area Manager',
     href: '/admin/areas',
-    description: 'Edit transit operational areas, dispatch corridors, hero imagery, and narrative arcs.',
+    description: 'Edit transit operational areas, dispatch corridors, maintenance bays, and facility narratives.',
     badge: 'CORRIDORS',
     icon: MapPin,
   },
   {
-    title: 'Project Manager',
+    title: 'Municipal Pilots',
     href: '/admin/projects',
-    description: 'Create, edit, and publish transit case studies, municipal pilots, and viewer records.',
+    description: 'Create, edit, and publish transit case studies, municipal pilots, and stakeholder records.',
     badge: 'PILOTS',
     icon: FolderKanban,
   },
@@ -90,7 +92,7 @@ const SYSTEM_SECTIONS: AdminTile[] = [
     icon: Building2,
   },
   {
-    title: 'Cohort Manager',
+    title: 'Cohort & Crew',
     href: '/admin/cohorts',
     description: 'Review driver pledges, mechanic apprentice enrollments, and operational vehicle placement.',
     badge: 'WORKFORCE',
@@ -106,7 +108,7 @@ const SYSTEM_SECTIONS: AdminTile[] = [
   {
     title: 'Content & Media Vault',
     href: '/admin/content',
-    description: 'Upload and manage operational guidelines, route training videos, and documentation.',
+    description: 'Upload and manage operational guidelines, route training videos, and telemetry documentation.',
     badge: 'KNOWLEDGE',
     icon: FileText,
   },
@@ -114,166 +116,179 @@ const SYSTEM_SECTIONS: AdminTile[] = [
 
 export default function AdminPage() {
   return (
-    <div className="min-h-screen bg-transport-black text-white selection:bg-transport-amber selection:text-black font-sans">
-      <TransportHeader />
-
-      <main className="mx-auto max-w-7xl space-y-10 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        {/* Header Hero Section */}
-        <section className="rounded-[28px] border border-white/10 bg-gradient-to-br from-[#171a20] to-[#0b0d11] p-6 sm:p-10 shadow-2xl space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.24em] text-transport-signal font-bold">
-                BEAM Transport Admin
-              </span>
-              <span className="text-white/30">·</span>
-              <span className="font-mono text-[10px] uppercase text-white/50">Executive Control Hub</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>System Operational</span>
-              </span>
-            </div>
+    <div className="space-y-10 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+      {/* Header Hero Section */}
+      <section className="rounded-[28px] border border-white/10 bg-gradient-to-br from-[#12151D] via-[#0E1017] to-[#08090C] p-6 sm:p-10 shadow-2xl space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.24em] text-transport-signal font-bold">
+              BEAM Transportation
+            </span>
+            <span className="text-white/30">·</span>
+            <span className="font-mono text-[10px] uppercase text-white/50">Executive Control Hub</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight font-display leading-[1.05]">
-            Operational Transit Management
-          </h1>
-
-          <p className="max-w-3xl text-xs sm:text-sm sm:leading-relaxed text-white/70">
-            Consolidated command hub for BEAM Transportation: live operational roadmaps, 64-item launch execution, federal transit gap telemetry, hearing evidence dossiers, and municipal cohort administration.
-          </p>
-
-          {/* Quick Macro Telemetry Strip (Consolidated from /admin/dashboard) */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-white/10">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-white/50">Active Corridors</div>
-              <div className="text-xl sm:text-2xl font-bold font-mono text-white mt-0.5">Lake County</div>
-              <div className="text-[11px] text-emerald-400 font-mono mt-0.5">Leesburg Priority 01</div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-white/50">Launch Checklist</div>
-              <div className="text-xl sm:text-2xl font-bold font-mono text-transport-amber mt-0.5">64 Items</div>
-              <div className="text-[11px] text-white/60 font-mono mt-0.5">8 Tracks Active</div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-white/50">Gap Score Deficit</div>
-              <div className="text-xl sm:text-2xl font-bold font-mono text-red-400 mt-0.5">17% Grade</div>
-              <div className="text-[11px] text-red-400/80 font-mono mt-0.5">Severe Headway Gap</div>
-            </div>
-
-            <Link 
-              href="/admin/dashboard/leesburg-fl"
-              className="p-3.5 rounded-2xl bg-red-950/20 hover:bg-red-950/40 border border-red-500/30 transition group block"
-            >
-              <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-red-400">
-                <span>Hearing Dossier</span>
-                <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-              <div className="text-xl sm:text-2xl font-bold font-mono text-white mt-0.5">Evidence Log</div>
-              <div className="text-[11px] text-white/60 font-mono mt-0.5">Inspect Submissions →</div>
-            </Link>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>System Operational</span>
+            </span>
           </div>
-        </section>
+        </div>
 
-        {/* Highlighted Core Operational Hubs (Timeline, Checklist, Dashboard, Dossier) */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-transport-amber" />
-              <h2 className="text-xs sm:text-sm font-mono uppercase tracking-[0.16em] text-transport-amber font-bold">
-                Operational Command Hubs
-              </h2>
+        <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight font-display leading-[1.05]">
+          Executive Control Hub
+        </h1>
+
+        <p className="max-w-3xl text-xs sm:text-sm sm:leading-relaxed text-white/70 font-sans">
+          Consolidated operations shell for BEAM Transportation: live operational roadmaps, 64-item launch execution, federal transit gap telemetry, hearing evidence dossiers, and municipal cohort administration.
+        </p>
+
+        {/* Unified Macro Telemetry Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 pt-4 border-t border-white/10">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <span>Active Corridors</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             </div>
-            <span className="text-[11px] font-mono text-white/40 hidden sm:inline">Active Workspaces</span>
+            <div className="text-2xl font-bold font-mono text-white mt-1">Lake County</div>
+            <div className="text-[11px] text-emerald-400 font-mono mt-0.5">Leesburg Priority 01</div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {PRIMARY_HUBS.map((hub) => {
-              const Icon = hub.icon
-              return (
-                <Link
-                  key={hub.title}
-                  href={hub.href}
-                  className="group relative flex flex-col justify-between rounded-[24px] border border-transport-amber/30 bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-5 sm:p-6 shadow-xl transition-all duration-200 hover:-translate-y-1 hover:border-transport-amber hover:shadow-transport-amber/10 hover:shadow-2xl"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-transport-amber/15 border border-transport-amber/30 flex items-center justify-center text-transport-amber">
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-[9px] uppercase px-2 py-0.5 rounded-full bg-transport-signal/15 text-transport-signal border border-transport-signal/30 font-bold">
-                          {hub.status}
-                        </span>
-                        <ArrowUpRight className="w-4 h-4 text-white/40 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-transport-amber" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-transport-amber font-semibold">
-                        {hub.badge}
-                      </p>
-                      <h3 className="mt-1 text-xl sm:text-2xl font-bold text-white group-hover:text-transport-amber transition-colors">
-                        {hub.title}
-                      </h3>
-                    </div>
-
-                    <p className="text-xs text-white/65 leading-relaxed">
-                      {hub.description}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-white/50 group-hover:text-white">
-                    <span>Open workspace</span>
-                    <span>→</span>
-                  </div>
-                </Link>
-              )
-            })}
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <span>Launch Readiness</span>
+              <span className="px-1.5 py-0.5 rounded bg-transport-amber/15 text-transport-amber text-[9px] font-bold">Phase 1</span>
+            </div>
+            <div className="text-2xl font-bold font-mono text-transport-amber mt-1">64 Items</div>
+            <div className="text-[11px] text-white/60 font-mono mt-0.5">8 Operational Tracks</div>
           </div>
-        </section>
 
-        {/* System Administration Sections */}
-        <section className="space-y-4">
-          <h2 className="text-xs sm:text-sm font-mono uppercase tracking-[0.16em] text-white/60 font-bold">
-            Platform Infrastructure
-          </h2>
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <span>Transit Deficit</span>
+              <span className="px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 text-[9px] font-bold">NTD 40158</span>
+            </div>
+            <div className="text-2xl font-bold font-mono text-red-400 mt-1">17% Grade</div>
+            <div className="text-[11px] text-red-400/80 font-mono mt-0.5">Severe Headway Gap</div>
+          </div>
 
-          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {SYSTEM_SECTIONS.map((section) => {
-              const Icon = section.icon
-              return (
-                <Link
-                  key={section.title}
-                  href={section.href}
-                  className="group rounded-[20px] border border-white/10 bg-white/[0.03] p-5 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.05]"
-                >
+          <Link 
+            href="/admin/dashboard/leesburg-fl"
+            className="p-4 rounded-2xl bg-red-950/25 hover:bg-red-950/45 border border-red-500/30 transition group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-red-400">
+              <span>Hearing Dossier</span>
+              <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </div>
+            <div className="text-2xl font-bold font-mono text-white mt-1">Evidence Log</div>
+            <div className="text-[11px] text-white/60 font-mono mt-0.5">Inspect Submissions →</div>
+          </Link>
+        </div>
+      </section>
+
+      {/* Operational Command Hubs */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-transport-amber" />
+            <h2 className="text-xs sm:text-sm font-mono uppercase tracking-[0.16em] text-transport-amber font-bold">
+              Operational Command Hubs
+            </h2>
+          </div>
+          <span className="text-[11px] font-mono text-white/40 hidden sm:inline">Active Workspaces</span>
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+          {PRIMARY_HUBS.map((hub) => {
+            const Icon = hub.icon
+            return (
+              <Link
+                key={hub.title}
+                href={hub.href}
+                className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-transport-amber/50 p-5 sm:p-6 shadow-xl transition-all duration-200 hover:-translate-y-1"
+              >
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/70 group-hover:text-white">
+                    <div className="w-10 h-10 rounded-xl bg-transport-amber/15 border border-transport-amber/30 flex items-center justify-center text-transport-amber">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-[9px] uppercase px-2 py-0.5 rounded-full bg-transport-signal/15 text-transport-signal border border-transport-signal/30 font-bold">
+                        {hub.status}
+                      </span>
+                      <ArrowUpRight className="w-4 h-4 text-white/40 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-transport-amber" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-transport-amber font-semibold">
+                      {hub.badge}
+                    </p>
+                    <h3 className="mt-1 text-lg sm:text-xl font-bold text-white group-hover:text-transport-amber transition-colors">
+                      {hub.title}
+                    </h3>
+                  </div>
+
+                  <p className="text-xs text-white/60 leading-relaxed font-sans">
+                    {hub.description}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs font-mono text-white/40 group-hover:text-white">
+                  <span>Open workspace</span>
+                  <span>→</span>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Platform Infrastructure Sections */}
+      <section className="space-y-4">
+        <h2 className="text-xs sm:text-sm font-mono uppercase tracking-[0.16em] text-white/60 font-bold">
+          Platform Infrastructure
+        </h2>
+
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          {SYSTEM_SECTIONS.map((section) => {
+            const Icon = section.icon
+            return (
+              <Link
+                key={section.title}
+                href={section.href}
+                className="group rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 p-5 sm:p-6 transition-all duration-200 flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/70 group-hover:text-white">
                       <Icon className="w-4 h-4" />
                     </div>
-                    <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/40 group-hover:text-transport-amber">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/40 group-hover:text-transport-amber px-2 py-0.5 rounded bg-white/5 border border-white/5">
                       {section.badge}
                     </span>
                   </div>
 
-                  <h3 className="mt-3 text-base sm:text-lg font-bold text-white group-hover:text-transport-amber transition-colors">
-                    {section.title}
-                  </h3>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-transport-amber transition-colors">
+                      {section.title}
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-white/60 font-sans">
+                      {section.description}
+                    </p>
+                  </div>
+                </div>
 
-                  <p className="mt-1.5 text-xs leading-relaxed text-white/60">
-                    {section.description}
-                  </p>
-                </Link>
-              )
-            })}
-          </div>
-        </section>
-      </main>
+                <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs font-mono text-white/40 group-hover:text-white">
+                  <span>Configure module</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
     </div>
   )
 }

@@ -8,13 +8,14 @@ import {
   Menu, 
   X,
   Truck,
-  ChevronDown,
-  MoreVertical,
   Loader2,
   LogOut,
   ShieldCheck,
   LogIn,
   AlertCircle,
+  ExternalLink,
+  ChevronRight,
+  User,
 } from 'lucide-react'
 import { getAdminNavGroups } from '@/lib/config/adminNav'
 import { useUserRole } from '@/lib/hooks/useUserRole'
@@ -93,18 +94,6 @@ function AdminAuthScreen() {
     }
   }
 
-  const handleSignOut = async () => {
-    if (!auth) return
-    setSigningOut(true)
-    try {
-      await signOut(auth)
-      router.push('/')
-    } catch (error) {
-      console.error('Error signing out:', error)
-      setSigningOut(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-transport-black text-white flex items-center justify-center p-6 font-sans">
       <motion.div
@@ -147,26 +136,6 @@ function AdminAuthScreen() {
           <LogIn className="w-4 h-4 text-black" />
           <span>{signingIn ? 'Signing in...' : 'Sign In with Admin Google Account'}</span>
         </button>
-
-        {user && (
-          <button
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className="w-full py-2.5 px-4 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-semibold border border-red-500/30 transition flex items-center justify-center space-x-2 cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>{signingOut ? 'Signing out...' : `Sign Out (${user.email})`}</span>
-          </button>
-        )}
-
-        <div className="pt-4 border-t border-white/10 flex flex-col space-y-2">
-          <Link
-            href="/"
-            className="text-xs text-white/60 hover:text-white transition font-medium"
-          >
-            ← Return to Transportation Homepage
-          </Link>
-        </div>
       </motion.div>
     </div>
   )
@@ -181,10 +150,9 @@ export default function AdminLayout({
   const { user, role, loading: roleLoading } = useUserRole()
   const partnerProjectId = usePartnerProject()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const pathname = usePathname()
-  const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
+  
   const isAllowedAdmin = isAdminEmailAllowed(user?.email)
   const effectiveRole = ADMIN_GATEWAYS_DISABLED || isAllowedAdmin ? 'beam_admin' : role
   const hasAdminShellAccess =
@@ -193,17 +161,18 @@ export default function AdminLayout({
     role === 'beam_admin' ||
     role === 'partner_admin' ||
     role === 'board'
+
   const navGroups = useMemo(
     () => getAdminNavGroups({ role: effectiveRole, partnerProjectId }),
     [effectiveRole, partnerProjectId],
   )
+
   const adminHomeHref = useMemo(() => {
     if (effectiveRole === 'partner_admin' && partnerProjectId) return `/admin/projects/${partnerProjectId}`
-    if (effectiveRole === 'board') return '/admin'
     return '/admin'
   }, [partnerProjectId, effectiveRole])
   
-  // Redirect partner admins to their project page
+  // Redirect partner admins to their project page if trying to view root /admin
   useEffect(() => {
     if (effectiveRole === 'partner_admin' && partnerProjectId && pathname === '/admin') {
       router.push(`/admin/projects/${partnerProjectId}`)
@@ -212,9 +181,7 @@ export default function AdminLayout({
 
   const handleSignOut = async () => {
     if (!auth) return
-    
     setSigningOut(true)
-    setDropdownOpen(false)
     try {
       await signOut(auth)
       router.push('/')
@@ -227,7 +194,7 @@ export default function AdminLayout({
   if (roleLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-transport-black">
-        <Loader2 className="h-12 w-12 animate-spin text-transport-amber" />
+        <Loader2 className="h-10 w-10 animate-spin text-transport-amber" />
       </div>
     )
   }
@@ -236,21 +203,17 @@ export default function AdminLayout({
     return <AdminAuthScreen />
   }
 
+  const currentSectionName = pathname === '/admin' 
+    ? 'Executive Overview' 
+    : pathname.replace('/admin/', '').split('/')[0].replace(/-/g, ' ').toUpperCase()
+
   return (
-    <div className={`min-h-screen bg-orchestra-dark flex overflow-hidden ${isStaging ? 'border-t-4 border-purple-500' : ''} relative`}>
-      {/* Staging Watermark */}
-      {isStaging && (
-        <div className="fixed inset-0 pointer-events-none z-[9999] opacity-5">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-purple-400 text-9xl font-bold transform -rotate-45">STAGING</div>
-          </div>
-        </div>
-      )}
+    <div className="min-h-screen bg-[#07080B] text-white flex overflow-hidden font-sans selection:bg-transport-amber selection:text-black">
       {/* Mobile sidebar backdrop */}
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-30 lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -259,221 +222,164 @@ export default function AdminLayout({
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Persistent Left Sidebar */}
       <motion.aside
-        className={`fixed inset-y-0 left-0 z-50 w-56 bg-orchestra-dark/95 backdrop-blur-md border-r border-orchestra-gold/20 transform transition-transform duration-300 flex-shrink-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#0A0D14] border-r border-white/10 flex flex-col justify-between transform transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0`}
-        initial={{ x: -224 }}
-        animate={{ x: sidebarOpen ? 0 : -224 }}
-        transition={{ duration: 0.3 }}
+        }`}
       >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-orchestra-gold/20">
-            <Link href={adminHomeHref} className="flex items-center space-x-2">
-              <Truck className="h-6 w-6 text-transport-amber" />
-              <span className="text-lg font-bold text-white font-mono">BEAM Admin</span>
-            </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-orchestra-cream hover:text-orchestra-gold"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
+        {/* Top Branding */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#0F131D]/80">
+          <Link href={adminHomeHref} className="flex items-center space-x-2.5 group">
+            <div className="w-8 h-8 rounded-xl bg-transport-amber/15 border border-transport-amber/30 flex items-center justify-center text-transport-amber group-hover:scale-105 transition-transform">
+              <Truck className="h-4 w-4" />
+            </div>
+            <div>
+              <span className="text-sm font-black text-white font-mono tracking-wider block">
+                BEAM TRANSPORT
+              </span>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-transport-signal block">
+                Control Hub
+              </span>
+            </div>
+          </Link>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-3 space-y-3">
-            {navGroups.map((group) => (
-              <div key={group.key} className="space-y-1.5">
-                {group.title && (
-                  <p className="px-2 text-[10px] font-semibold tracking-[0.14em] text-orchestra-gold/70">
-                    {group.title}
-                  </p>
-                )}
-                {group.items.map((link) => {
-                  const Icon = link.icon
-                  const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
+        {/* Scrollable Navigation - Grouped into 5 Domains */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scrollbar-thin scrollbar-thumb-white/10">
+          {navGroups.map((group) => (
+            <div key={group.key} className="space-y-1">
+              <p className="px-3 text-[10px] font-mono font-bold tracking-[0.18em] uppercase text-white/40">
+                {group.title}
+              </p>
+              {group.items.map((link) => {
+                const Icon = link.icon
+                const isActive = pathname === link.href || (link.href !== '/admin' && pathname.startsWith(`${link.href}/`))
 
-                  if (!link.enabled) {
-                    return (
-                      <div
-                        key={link.key}
-                        className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-orchestra-cream/55 border border-orchestra-gold/10 bg-orchestra-gold/5"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Icon className="h-4 w-4 flex-shrink-0" />
-                          <span className="font-medium truncate">{link.label}</span>
-                        </div>
-                        <span className="text-[10px] uppercase tracking-wide text-orchestra-gold/70">Soon</span>
-                      </div>
-                    )
-                  }
-
+                if (!link.enabled) {
                   return (
-                    <Link
+                    <div
                       key={link.key}
-                      href={link.href}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm ${
-                        isActive
-                          ? 'bg-orchestra-gold/20 text-orchestra-gold border border-orchestra-gold/30'
-                          : 'text-orchestra-cream hover:bg-orchestra-gold/10 hover:text-orchestra-gold'
-                      }`}
-                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center justify-between rounded-xl px-3 py-2 text-xs text-white/35 cursor-not-allowed"
                     >
-                      <Icon className="h-4 w-4 flex-shrink-0" />
-                      <span className="font-medium truncate">{link.label}</span>
-                    </Link>
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <Icon className="h-3.5 w-3.5 flex-shrink-0 text-white/25" />
+                        <span className="truncate">{link.label}</span>
+                      </div>
+                      <span className="text-[9px] font-mono uppercase tracking-wider text-white/30 bg-white/5 px-1.5 py-0.5 rounded">
+                        Soon
+                      </span>
+                    </div>
                   )
-                })}
-              </div>
-            ))}
-          </nav>
+                }
 
-          {/* Footer */}
-          <div className="p-3 border-t border-orchestra-gold/20 space-y-2">
-            {user && (
-              <div className="text-xs text-orchestra-cream/70 truncate px-2">
-                {user.email}
+                return (
+                  <Link
+                    key={link.key}
+                    href={link.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-150 text-xs font-medium group ${
+                      isActive
+                        ? 'bg-white/10 text-white font-semibold border border-white/15 shadow-sm'
+                        : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2.5 min-w-0">
+                      <Icon className={`h-4 w-4 flex-shrink-0 transition-colors ${
+                        isActive ? 'text-transport-amber' : 'text-white/50 group-hover:text-white'
+                      }`} />
+                      <span className="truncate">{link.label}</span>
+                    </div>
+                    {link.badge && (
+                      <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-transport-signal/15 text-transport-signal border border-transport-signal/30 font-bold shrink-0">
+                        {link.badge}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
+        </nav>
+
+        {/* Pinned User Profile & Session Indicator */}
+        <div className="p-3 border-t border-white/10 bg-[#0B0E16] space-y-2.5">
+          <div className="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-mono font-bold text-white truncate">
+                {user?.email || 'ezra@readyaimgo.biz'}
+              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[9px] font-mono uppercase text-emerald-400 font-semibold tracking-wider">
+                  Admin Active
+                </span>
               </div>
-            )}
-            <button
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors text-sm text-orchestra-cream hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-            >
-              <LogOut className="h-4 w-4 flex-shrink-0" />
-              <span className="font-medium">{signingOut ? 'Signing out...' : 'Sign Out'}</span>
-            </button>
-            <div className="text-xs text-orchestra-cream/50 pt-2 border-t border-orchestra-gold/10">
-              BEAM Transportation Admin Portal
             </div>
           </div>
+
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-xl text-xs font-mono font-semibold text-red-300 hover:text-white hover:bg-red-500/15 border border-red-500/20 hover:border-red-500/40 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>{signingOut ? 'Signing out...' : 'Sign Out'}</span>
+          </button>
         </div>
       </motion.aside>
 
-      {/* Main content */}
-      <div className="lg:ml-56 flex-1 min-w-0 flex flex-col overflow-hidden">
-        {/* Mobile header */}
-        <header className="lg:hidden bg-orchestra-dark/95 backdrop-blur-md border-b border-orchestra-gold/20 p-4 flex-shrink-0">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-orchestra-cream hover:text-orchestra-gold"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-        </header>
-
-        {/* Desktop header with Navigation Dropdown */}
-        <header className="hidden lg:flex items-center justify-between bg-orchestra-dark/95 backdrop-blur-md border-b border-orchestra-gold/20 px-6 py-4 flex-shrink-0 relative z-[60]">
-          <div className="flex-1"></div>
-          <div className="relative">
+      {/* Main Content Area */}
+      <div className="lg:ml-64 flex-1 min-w-0 flex flex-col min-h-screen">
+        {/* Top Header Rail */}
+        <header className="sticky top-0 z-20 flex items-center justify-between bg-[#08090C]/90 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-3 flex-shrink-0">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center space-x-2 px-4 py-2 bg-orchestra-gold/10 hover:bg-orchestra-gold/20 text-orchestra-gold rounded-lg transition-colors border border-orchestra-gold/30 relative z-[70]"
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10"
+              aria-label="Open sidebar"
             >
-              <MoreVertical className="h-5 w-5" />
-              <span className="font-medium">Menu</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+              <Menu className="h-5 w-5" />
             </button>
+            <div className="flex items-center gap-2 text-xs font-mono text-white/50">
+              <span className="text-white/70 font-semibold hidden sm:inline">BEAM Transport</span>
+              <ChevronRight className="w-3.5 h-3.5 hidden sm:inline text-white/30" />
+              <span className="text-transport-amber font-medium truncate max-w-[200px] sm:max-w-xs">
+                {currentSectionName}
+              </span>
+            </div>
+          </div>
 
-            {/* Dropdown Menu */}
-            <AnimatePresence>
-              {dropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-[9998]"
-                    onClick={() => setDropdownOpen(false)}
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="fixed right-6 top-20 w-56 bg-orchestra-dark border border-orchestra-gold/30 rounded-lg shadow-2xl z-[9999] overflow-hidden backdrop-blur-md"
-                    style={{ pointerEvents: 'auto' }}
-                  >
-                    <div className="py-2">
-                      {navGroups.map((group) => (
-                        <div key={`dropdown-group-${group.key}`}>
-                          {group.title && (
-                            <p className="px-4 pt-2 pb-1 text-[10px] font-semibold tracking-[0.14em] text-orchestra-gold/70">
-                              {group.title}
-                            </p>
-                          )}
-                          {group.items.map((link) => {
-                            const Icon = link.icon
-                            const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Live Telemetry</span>
+            </span>
 
-                            if (!link.enabled) {
-                              return (
-                                <div
-                                  key={`dropdown-${link.key}`}
-                                  className="flex items-center justify-between space-x-3 px-4 py-2.5 text-orchestra-cream/60"
-                                >
-                                  <div className="flex items-center space-x-3">
-                                    <Icon className="h-5 w-5 flex-shrink-0" />
-                                    <span className="font-medium">{link.label}</span>
-                                  </div>
-                                  <span className="text-[10px] uppercase tracking-wide text-orchestra-gold/70">Soon</span>
-                                </div>
-                              )
-                            }
-
-                            return (
-                              <Link
-                                key={`dropdown-${link.key}`}
-                                href={link.href}
-                                onClick={() => setDropdownOpen(false)}
-                                className={`flex items-center space-x-3 px-4 py-3 transition-colors relative z-[10000] ${
-                                  isActive
-                                    ? 'bg-orchestra-gold/20 text-orchestra-gold border-l-2 border-orchestra-gold'
-                                    : 'text-orchestra-cream hover:bg-orchestra-gold/10 hover:text-orchestra-gold'
-                                }`}
-                                style={{ pointerEvents: 'auto' }}
-                              >
-                                <Icon className="h-5 w-5 flex-shrink-0" />
-                                <span className="font-medium">{link.label}</span>
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      ))}
-                      
-                      {/* Divider */}
-                      <div className="border-t border-orchestra-gold/20 my-2" />
-                      
-                      {/* User Info */}
-                      {user && (
-                        <div className="px-4 py-2 text-xs text-orchestra-cream/70 border-b border-orchestra-gold/10">
-                          <p className="truncate">{user.email}</p>
-                        </div>
-                      )}
-                      
-                      {/* Sign Out */}
-                      <button
-                        onClick={handleSignOut}
-                        disabled={signingOut}
-                        className="w-full flex items-center space-x-3 px-4 py-3 transition-colors relative z-[10000] text-orchestra-cream hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                        style={{ pointerEvents: 'auto' }}
-                      >
-                        <LogOut className="h-5 w-5 flex-shrink-0" />
-                        <span className="font-medium">{signingOut ? 'Signing out...' : 'Sign Out'}</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition"
+              title="Open public website"
+            >
+              <span>Public Portal</span>
+              <ExternalLink className="w-3 h-3 text-white/50" />
+            </Link>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="p-4 lg:p-6 flex-1 overflow-y-auto overflow-x-auto">
-          <div className="max-w-7xl mx-auto px-6 w-full">
-            {children}
-          </div>
+        {/* Dynamic Page Content Canvas */}
+        <main className="flex-1 min-w-0 bg-[#07090E]">
+          {children}
         </main>
       </div>
     </div>
