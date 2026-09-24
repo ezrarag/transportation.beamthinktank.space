@@ -3,7 +3,17 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, ShieldCheck } from 'lucide-react'
+import { 
+  ChevronDown, 
+  ShieldCheck, 
+  BarChart3, 
+  Car, 
+  Globe, 
+  Users, 
+  LayoutDashboard,
+  Radio,
+  ArrowRight
+} from 'lucide-react'
 import UserMenu from '@/components/UserMenu'
 import { resolvePortalPath } from '@/lib/portal/routes'
 
@@ -13,14 +23,13 @@ const PORTAL_TRACKS = [
   { id: 'dispatch', doorNumber: '03', label: 'Fleet Dispatch & Routing', subtitle: 'Telemetry & Route Optimization', accent: '#6366F1', href: '/#intake-module' },
 ]
 
-const NAV_ITEMS = [
-  { label: 'Truth Dashboard', href: '/dashboard', isHighlight: true },
-  { label: 'Profile', href: '/profile' },
-  { label: 'Fleet', href: '/fleet' },
-  { label: 'Viewer', href: resolvePortalPath('/viewer', 'transport') },
-  { label: 'Cohort', href: resolvePortalPath('/cohort', 'transport') },
-  { label: 'Sponsor Telemetry', href: '/sponsor' },
-  { label: 'Admin', href: resolvePortalPath('/admin', 'transport') },
+const ECOSYSTEM_PAGES = [
+  { label: 'Truth Dashboard', href: '/dashboard/leesburg-fl', icon: BarChart3, badge: 'Live Audit' },
+  { label: 'Fleet Gallery', href: '/fleet', icon: Car },
+  { label: 'Public Viewer', href: resolvePortalPath('/viewer', 'transport'), icon: Globe },
+  { label: 'Cohort & Crew', href: resolvePortalPath('/cohort', 'transport'), icon: Users },
+  { label: 'Sponsor Telemetry', href: '/sponsor', icon: Radio },
+  { label: 'Admin Hub', href: resolvePortalPath('/admin', 'transport'), icon: LayoutDashboard },
 ]
 
 export default function TransportHeader() {
@@ -38,104 +47,123 @@ export default function TransportHeader() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#07080b]/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 bg-[#07080B]/60 backdrop-blur-xl border-b border-white/5 transition-colors">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
-        {/* Left Branding Bar with Orchestra-style Dropdown */}
-        <div className="flex items-center space-x-3 text-xs tracking-[0.25em] uppercase text-white/60">
-          <Link href={resolvePortalPath('/', 'transport')} className="font-bold text-white tracking-widest text-sm hover:text-emerald-400 transition">
+        {/* Left Branding Bar with Unified Dropdown (matching grounds.beamthinktank.space) */}
+        <div className="flex items-center space-x-2.5 font-mono text-xs uppercase tracking-[0.25em] text-white/70">
+          <Link 
+            href={resolvePortalPath('/', 'transport')} 
+            className="font-bold text-white tracking-widest text-sm hover:text-emerald-400 transition"
+          >
             BEAM
           </Link>
           <span className="text-white/30">·</span>
 
-          {/* Clickable 'Transportation' Dropdown Toggle */}
+          {/* Clickable 'Transportation' Unified Dropdown Toggle */}
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center space-x-1.5 font-semibold text-emerald-400 hover:text-emerald-300 transition-all focus:outline-none py-1 px-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40"
+              className="flex items-center space-x-1.5 font-semibold text-emerald-400 hover:text-emerald-300 transition-all focus:outline-none py-1.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 cursor-pointer"
               aria-expanded={isDropdownOpen}
-              aria-label="Transportation track selector"
+              aria-label="Transportation directory and track selector"
             >
               <span>Transportation</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Unified Floating Dropdown Menu */}
             <AnimatePresence>
               {isDropdownOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute left-0 top-full mt-2 w-72 rounded-2xl bg-[#090b14]/95 backdrop-blur-xl border border-white/15 p-2 shadow-2xl z-50 text-left normal-case tracking-normal"
+                  className="absolute left-0 top-full mt-2 w-80 rounded-2xl bg-[#0B0E16]/95 backdrop-blur-2xl border border-white/15 p-3 shadow-2xl z-50 text-left normal-case tracking-normal text-white divide-y divide-white/10"
                 >
-                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 border-b border-white/10 mb-1">
-                    Select Operational Track
+                  {/* Ecosystem Portals */}
+                  <div className="pb-3 space-y-1">
+                    <div className="px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-white/40">
+                      Portals & Telemetry
+                    </div>
+                    {ECOSYSTEM_PAGES.map((page) => {
+                      const Icon = page.icon
+                      return (
+                        <Link
+                          key={page.href}
+                          href={page.href}
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 transition group"
+                        >
+                          <div className="flex items-center space-x-2.5">
+                            <Icon className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                            <span>{page.label}</span>
+                          </div>
+                          {page.badge && (
+                            <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold">
+                              {page.badge}
+                            </span>
+                          )}
+                        </Link>
+                      )
+                    })}
                   </div>
 
-                  {PORTAL_TRACKS.map((track) => (
-                    <Link
-                      key={track.id}
-                      href={track.href}
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="w-full flex items-start space-x-3 p-3 rounded-xl transition-all hover:bg-white/10 text-white/70 hover:text-white"
-                    >
-                      <div
-                        className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0"
-                        style={{ backgroundColor: track.accent }}
-                      />
-                      <div>
-                        <div className="text-xs font-bold flex items-center justify-between gap-2">
-                          <span className="text-white">{track.label}</span>
-                          <span className="text-[10px] font-mono text-white/40">({track.doorNumber})</span>
-                        </div>
-                        <div className="text-[11px] text-white/50 leading-tight mt-0.5">
-                          {track.subtitle}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-
-                  {/* Sponsor Link in Dropdown */}
-                  <Link
-                    href="/sponsor"
-                    onClick={() => setIsDropdownOpen(false)}
-                    className="w-full flex items-start space-x-3 p-3 rounded-xl transition-all hover:bg-white/10 text-white/70 hover:text-white border-t border-white/10 mt-1"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-                    <div>
-                      <div className="text-xs font-bold text-emerald-400">Sponsor Telemetry Portal</div>
-                      <div className="text-[11px] text-white/50 leading-tight mt-0.5">
-                        Inspect demand maps & EV telemetry
-                      </div>
+                  {/* Operational Tracks */}
+                  <div className="pt-3 space-y-1">
+                    <div className="px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-white/40">
+                      Operational Tracks
                     </div>
-                  </Link>
+                    {PORTAL_TRACKS.map((track) => (
+                      <Link
+                        key={track.id}
+                        href={track.href}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="w-full flex items-start space-x-3 p-2.5 rounded-xl transition hover:bg-white/10 text-white/70 hover:text-white group"
+                      >
+                        <div
+                          className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0"
+                          style={{ backgroundColor: track.accent }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold flex items-center justify-between gap-1 text-white">
+                            <span>{track.label}</span>
+                            <span className="text-[10px] font-mono text-white/40">({track.doorNumber})</span>
+                          </div>
+                          <div className="text-[11px] text-white/50 leading-tight mt-0.5">
+                            {track.subtitle}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+
+                  {/* Sponsor Portal Link */}
+                  <div className="pt-2">
+                    <Link
+                      href="/sponsor"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl transition hover:bg-white/10 text-emerald-400 hover:text-emerald-300"
+                    >
+                      <div className="flex items-center space-x-2 text-xs font-bold">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        <span>Sponsor Demand & Telemetry</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
 
-        {/* Right Navigation */}
-        <nav className="hidden items-center gap-5 text-xs font-semibold uppercase tracking-[0.16em] text-white/70 lg:flex">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`transition ${
-                item.isHighlight
-                  ? 'text-emerald-400 hover:text-emerald-300 font-bold'
-                  : 'hover:text-white'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <UserMenu />
+        {/* Right Navigation: Only the clean User Profile & Sign-In Dropdown */}
+        <div className="flex items-center space-x-3">
+          <UserMenu />
+        </div>
       </div>
     </header>
   )

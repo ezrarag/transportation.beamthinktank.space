@@ -100,9 +100,34 @@ export default function CityTruthDashboardPage() {
               <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight font-display">
                 {cityName.toUpperCase()}
               </h1>
-              <p className="text-lg text-white/70 font-sans">
-                {countyName} · Population {population} (2024 ACS Estimate)
-              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-sm sm:text-base text-white/70 font-sans">
+                <span>{countyName}</span>
+                <span className="text-white/30">·</span>
+                <span>Population</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(
+                        new CustomEvent('beam:open-verify-modal', {
+                          detail: {
+                            name: `US Census Bureau — Lake County & ${cityName} Official Population & Demographics (ACS 2024 / QuickFacts)`,
+                            url: 'https://www.census.gov/quickfacts/fact/table/lakecountyflorida,leesburgcityflorida/PST045223',
+                          },
+                        })
+                      )
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white font-mono font-bold transition cursor-pointer group"
+                  title="Click to verify official population data on US Census Bureau QuickFacts"
+                >
+                  <span className="text-transport-signal">{population}</span>
+                  <span className="text-[10px] font-mono uppercase text-white/50 group-hover:text-transport-amber transition-colors">
+                    [ Verify Census ↗ ]
+                  </span>
+                </button>
+                <span className="text-xs text-white/40 font-mono">(2024 ACS Estimate)</span>
+              </div>
             </div>
 
             {/* REAL-TIME INCIDENT COUNTER BADGE */}
